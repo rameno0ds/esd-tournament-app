@@ -28,3 +28,7 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Secret keys
+backend/serviceAccountKey.json
+.env
