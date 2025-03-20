@@ -1,83 +1,186 @@
 <template>
-  <div class="register-container">
-    <h2>Player Sign Up</h2>
-    <form @submit.prevent="register">
-      <input type="text" v-model="username" placeholder="Username" required />
-      <input type="email" v-model="email" placeholder="Email" required />
-      <input type="password" v-model="password" placeholder="Password" required />
-      <button type="submit">Sign Up</button>
-    </form>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+  <div class="auth-container">
+    <div class="auth-card">
+      <!-- Logo/Brand Placeholder -->
+      <div class="auth-logo">A</div>
+      <h2 class="auth-welcome">Create Account</h2>
+
+      <form @submit.prevent="handleRegister" class="auth-form">
+        <div class="input-group">
+          <input
+            v-model="username"
+            type="text"
+            required
+            placeholder="Username"
+          />
+        </div>
+
+        <div class="input-group">
+          <input
+            v-model="email"
+            type="email"
+            required
+            placeholder="Email"
+          />
+        </div>
+
+        <div class="input-group">
+          <input
+            v-model="password"
+            type="password"
+            required
+            placeholder="Password"
+          />
+        </div>
+
+        <div class="input-group">
+          <input
+            v-model="confirmPassword"
+            type="password"
+            required
+            placeholder="Confirm Password"
+          />
+        </div>
+
+        <button type="submit" class="btn-gradient">Sign Up</button>
+      </form>
+
+      <p class="auth-footer">
+        Already have an account?
+        <router-link to="/login" class="auth-link">Login</router-link>
+      </p>
+    </div>
   </div>
 </template>
 
-<script>
-import { ref } from "vue";
-import axios from "axios";
-import { useRouter } from "vue-router";
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { auth } from '../firebase'
 
-export default {
-  setup() {
-    const username = ref("");
-    const email = ref("");
-    const password = ref("");
-    const errorMessage = ref("");
-    const router = useRouter();
+const username = ref('')
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const router = useRouter()
 
-    const register = async () => {
-      try {
-        // Send registration request to backend
-        const response = await axios.post("http://127.0.0.1:5001/register", {
-          email: email.value,
-          username: username.value,
-          password: password.value
-        });
-
-        // Handle successful response
-        if (response.status === 201) {
-          alert("Registration successful!");
-          router.push({ name: "login" });
-        } else {
-          // Handle unexpected response codes
-          errorMessage.value = "Registration failed. Please try again.";
-        }
-      } catch (error) {
-        // Handle error if request fails
-        if (error.response && error.response.data) {
-          errorMessage.value = error.response.data.error || "Registration failed: " + error.message;
-        } else {
-          errorMessage.value = "Network error. Please try again later.";
-        }
-      }
-    };
-
-    return { username, email, password, register, errorMessage };
+const handleRegister = async () => {
+  if (password.value !== confirmPassword.value) {
+    alert('Passwords do not match!')
+    return
   }
-};
+  try {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    )
+    // Update the user profile with the display name (username)
+    await updateProfile(userCredential.user, { displayName: username.value })
+    console.log('User registered:', userCredential.user)
+    // Redirect the user to the login page after successful registration
+    router.push('/login')
+  } catch (error) {
+    console.error('Registration failed:', error)
+    alert(error.message)
+  }
+}
 </script>
 
 <style scoped>
-.register-container {
+/* Container centers the card vertically/horizontally */
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f9f9f9;
+  padding: 1rem;
+}
+
+/* Card styling */
+.auth-card {
+  background: #fff;
+  width: 100%;
   max-width: 400px;
-  margin: auto;
-  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
   text-align: center;
 }
-input {
-  display: block;
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 10px;
+
+/* Placeholder logo */
+.auth-logo {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: #eeeeee;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 1rem auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-button {
+
+/* Welcome text */
+.auth-welcome {
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+/* Form styling */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Input groups */
+.input-group {
+  position: relative;
+}
+
+.input-group input {
   width: 100%;
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
   border: none;
+  border-bottom: 1px solid #ccc;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+  outline: none;
 }
-.error {
-  color: red;
-  margin-top: 10px;
+
+/* Gradient button */
+.btn-gradient {
+  background: linear-gradient(90deg, #6a5af9, #9e6af8);
+  border: none;
+  border-radius: 9999px;
+  padding: 0.75rem 1.5rem;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.btn-gradient:hover {
+  filter: brightness(1.1);
+}
+
+/* Footer text */
+.auth-footer {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* Link styling */
+.auth-link {
+  color: #6a5af9;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
 }
 </style>
