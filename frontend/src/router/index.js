@@ -5,6 +5,9 @@ import Match from "@/pages/Match.vue";
 import Dispute from "@/pages/Dispute.vue";
 import Login from "@/pages/Login.vue";
 import Register from "@/pages/Register.vue";
+import Schedule from "@/pages/Schedule.vue";
+import Teams from '@/pages/Teams.vue';
+import TournamentDetails from '@/pages/TournamentDetails.vue';
 import { getAuth } from 'firebase/auth'; // Import Firebase Authentication
 
 
@@ -20,9 +23,12 @@ const routes = [
     component: Home,
     meta: { requiresAuth: true }, // Make sure the Home route is protected
   },
-  { path: "/tournament", component: Tournament, meta: { requiresAuth: true } },
+  { path: "/tournaments", component: Tournament, meta: { requiresAuth: true } },
   { path: "/match/:id", component: Match, meta: { requiresAuth: true } },
   { path: "/dispute", component: Dispute, meta: { requiresAuth: true } },
+  { path: "/schedule", component: Schedule, meta: { requiresAuth: true } },
+  { path: '/teams', name: 'Teams', component: Teams, meta: { requiresAuth: true } }, 
+  { path: '/tournament/:id', name: 'TournamentDetails', component: TournamentDetails, meta: { requiresAuth: true } }, 
 
   { path: "/register", component: Register },
 ];

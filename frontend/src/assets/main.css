@@ -1,0 +1,54 @@
+/* main.css */
+
+/* Light mode (default) */
+:root {
+  --color-background: #ffffff;
+  --color-background-soft: #f9f9f9;
+  --color-border: #ddd;
+  --color-text: #333;
+  --color-heading: #222;
+  --color-accent: #6a5af9;
+}
+
+/* Dark mode overrides */
+.dark {
+  --color-background: #181818;
+  --color-background-soft: #222222;
+  --color-border: #444;
+  --color-text: #f0f0f0;
+  --color-heading: #ffffff;
+  --color-accent: #9e6af8;
+}
+
+/* Body styling to apply background/text from variables */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+/* Example card or container */
+.card {
+  background-color: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+/* Example gradient button using accent color */
+.btn-gradient {
+  background: linear-gradient(90deg, var(--color-accent), #9e6af8);
+  border: none;
+  border-radius: 9999px;
+  padding: 0.75rem 1.5rem;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.btn-gradient:hover {
+  filter: brightness(1.1);
+}

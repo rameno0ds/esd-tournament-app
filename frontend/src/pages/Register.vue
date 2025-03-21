@@ -1,7 +1,6 @@
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <!-- Logo/Brand Placeholder -->
       <div class="auth-logo">A</div>
       <h2 class="auth-welcome">Create Account</h2>
 
@@ -57,7 +56,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { auth } from '../firebase'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from '../firebase'
 
 const username = ref('')
 const email = ref('')
@@ -71,15 +71,27 @@ const handleRegister = async () => {
     return
   }
   try {
+    // 1. Create user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email.value,
       password.value
     )
-    // Update the user profile with the display name (username)
-    await updateProfile(userCredential.user, { displayName: username.value })
-    console.log('User registered:', userCredential.user)
-    // Redirect the user to the login page after successful registration
+    const user = userCredential.user
+
+    // 2. Optionally update the user's display name in Firebase Auth
+    await updateProfile(user, { displayName: username.value })
+
+    // 3. Store additional user info in Firestore
+    //    Use a "players" or "users" collection—your choice
+    await setDoc(doc(db, 'players', user.uid), {
+      username: username.value,
+      email: email.value,
+      createdAt: serverTimestamp()
+    })
+
+    console.log('User registered:', user)
+    // Redirect to login after successful registration
     router.push('/login')
   } catch (error) {
     console.error('Registration failed:', error)
@@ -89,7 +101,6 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-/* Container centers the card vertically/horizontally */
 .auth-container {
   display: flex;
   align-items: center;
@@ -99,7 +110,6 @@ const handleRegister = async () => {
   padding: 1rem;
 }
 
-/* Card styling */
 .auth-card {
   background: #fff;
   width: 100%;
@@ -110,7 +120,6 @@ const handleRegister = async () => {
   text-align: center;
 }
 
-/* Placeholder logo */
 .auth-logo {
   font-size: 2.5rem;
   font-weight: 700;
@@ -124,20 +133,17 @@ const handleRegister = async () => {
   justify-content: center;
 }
 
-/* Welcome text */
 .auth-welcome {
   margin-bottom: 2rem;
   font-weight: 500;
 }
 
-/* Form styling */
 .auth-form {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* Input groups */
 .input-group {
   position: relative;
 }
@@ -151,7 +157,6 @@ const handleRegister = async () => {
   outline: none;
 }
 
-/* Gradient button */
 .btn-gradient {
   background: linear-gradient(90deg, #6a5af9, #9e6af8);
   border: none;
@@ -167,13 +172,11 @@ const handleRegister = async () => {
   filter: brightness(1.1);
 }
 
-/* Footer text */
 .auth-footer {
   margin-top: 1.5rem;
   font-size: 0.9rem;
 }
 
-/* Link styling */
 .auth-link {
   color: #6a5af9;
   text-decoration: none;
