@@ -1,5 +1,5 @@
 <template>
-  <!-- Only render the home page if the user has loaded -->
+  <!-- Render only if user data is loaded -->
   <div v-if="currentUser" class="home-page">
     <h1>Welcome, {{ username }}!</h1>
     <h2>All Ongoing Tournaments</h2>
@@ -8,19 +8,44 @@
     <div v-if="loading" class="loader">Loading tournaments...</div>
     <div v-else>
       <div class="tournament-grid">
-        <div class="tournament-card" v-for="tournament in tournaments" :key="tournament.id">
-          <h2>{{ tournament.name }}</h2>
-          <p>ID: {{ tournament.id }}</p>
-          <p>Status: {{ tournament.status }}</p>
+        <div class="tournament-card" v-for="tourney in tournaments" :key="tourney.id">
+          <h2>{{ tourney.name }}</h2>
+          <p>ID: {{ tourney.id }}</p>
+          <p>Status: {{ tourney.status }}</p>
 
           <!-- If the user has already joined this tournament -->
-          <div v-if="hasJoined(tournament)">
+          <div v-if="hasJoined(tourney)">
             <button disabled>Joined</button>
-            <button @click="viewTournament(tournament)">View Tournament</button>
+            <button @click="viewTournament(tourney)">View Tournament</button>
           </div>
-          <!-- Otherwise, show the join button only -->
+          <!-- Otherwise, show the join button which toggles the join UI -->
           <div v-else>
-            <button @click="joinTournament(tournament)">Join Tournament</button>
+            <button @click="toggleJoin(tourney.id)">Join Tournament</button>
+          </div>
+
+          <!-- Inline UI for joining (shown only for the expanded tournament) -->
+          <div v-if="expandedJoin === tourney.id" class="join-options">
+            <h3>Join with an Existing Team</h3>
+            <label for="teamSelect">Select a Team:</label>
+            <select id="teamSelect" v-model="selectedTeamId">
+              <option disabled value="">-- Choose a team --</option>
+              <option
+                v-for="team in availableTeams(tourney.id)"
+                :key="team.id"
+                :value="team.id"
+              >
+                {{ team.name }} (ID: {{ team.id }})
+              </option>
+            </select>
+            <button @click="joinWithTeam(tourney.id)" :disabled="!selectedTeamId">
+              Confirm
+            </button>
+            <h3>Or Auto-Create a Team</h3>
+            <button @click="autoTeam(tourney.id)">Auto Team</button>
+            <!-- Confirmation message for this tournament's join action -->
+            <div v-if="confirmation[tourney.id]" class="confirmation">
+              {{ confirmation[tourney.id] }}
+            </div>
           </div>
         </div>
       </div>
@@ -55,7 +80,6 @@
       </div>
     </section>
   </div>
-
   <!-- Fallback loader if user not loaded -->
   <div v-else class="loader">Loading user...</div>
 </template>
@@ -72,6 +96,7 @@ import {
   getDocs,
   updateDoc,
   doc,
+  addDoc,
   arrayUnion
 } from 'firebase/firestore'
 
@@ -80,8 +105,18 @@ const router = useRouter()
 const currentUser = ref(null)
 const loading = ref(true)
 
-// Data for tournaments, announcements, and profile (dummy for now)
+// Tournaments and join confirmation messages (keyed by tournament id)
 const tournaments = ref([])
+const confirmation = ref({})
+
+// List of teams the user belongs to
+const myTeams = ref([])
+
+// UI state for the join flow
+const expandedJoin = ref('')
+const selectedTeamId = ref('')
+
+// Dummy announcements and profile
 const announcements = ref([
   'Patch 1.1 released: New map added.',
   'New rules implemented for fair play.',
@@ -93,7 +128,7 @@ const profile = ref({
   recentActivity: 'Won a match in Tournament A.'
 })
 
-// Computed username (displayName or email)
+// Computed username
 const username = computed(() => {
   if (currentUser.value) {
     return currentUser.value.displayName || currentUser.value.email || 'User'
@@ -101,7 +136,7 @@ const username = computed(() => {
   return ''
 })
 
-// Listen for Firebase Auth state changes
+// Listen for auth state changes
 onAuthStateChanged(auth, (user) => {
   console.log("Auth state changed:", user)
   if (!user) {
@@ -109,10 +144,11 @@ onAuthStateChanged(auth, (user) => {
   } else {
     currentUser.value = user
     loadOngoingTournaments()
+    loadMyTeams()
   }
 })
 
-// Function to load all ongoing tournaments from Firestore
+// Load ongoing tournaments from Firestore
 async function loadOngoingTournaments() {
   try {
     const tournamentsRef = collection(db, 'tournaments')
@@ -130,39 +166,101 @@ async function loadOngoingTournaments() {
   }
 }
 
-// Helper function to check if the user has joined a tournament
+// Load user's teams from Firestore
+async function loadMyTeams() {
+  if (!currentUser.value) return
+  try {
+    const teamsRef = collection(db, 'teams')
+    const q = query(teamsRef, where('players_id', 'array-contains', currentUser.value.uid))
+    const snapshot = await getDocs(q)
+    myTeams.value = snapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+    console.log("Loaded myTeams:", myTeams.value)
+  } catch (error) {
+    console.error('Error loading user teams:', error)
+  }
+}
+
+// Helper: Return teams not already in the tournament
+function availableTeams(tournamentId) {
+  return myTeams.value.filter(team => !team.tournaments_id || team.tournaments_id !== tournamentId)
+}
+
+// Check if user has joined a tournament (by checking if their uid is in tournament.players)
 function hasJoined(tournament) {
   return tournament.players && tournament.players.includes(currentUser.value.uid)
 }
 
-// Function to join a tournament
-async function joinTournament(tournament) {
-  if (!currentUser.value) return
+// Toggle the join UI for a specific tournament
+function toggleJoin(tournamentId) {
+  expandedJoin.value = (expandedJoin.value === tournamentId) ? '' : tournamentId
+  selectedTeamId.value = ''
+  // Clear any previous confirmation message for this tournament
+  confirmation.value[tournamentId] = ''
+}
+
+// Join with an existing team for a given tournament
+async function joinWithTeam(tournamentId) {
+  if (!selectedTeamId.value || !currentUser.value) return
   try {
-    if (!tournament.players || !tournament.players.includes(currentUser.value.uid)) {
-      const tournamentDocRef = doc(db, 'tournaments', tournament.id)
-      await updateDoc(tournamentDocRef, {
-        players: arrayUnion(currentUser.value.uid)
-      })
-      alert(`Successfully joined ${tournament.name}!`)
-      // Update the local tournament data so the UI reflects the change immediately.
-      if (!tournament.players) tournament.players = []
-      tournament.players.push(currentUser.value.uid)
-    } else {
-      alert('You have already joined this tournament.')
+    const teamDocRef = doc(db, 'teams', selectedTeamId.value)
+    await updateDoc(teamDocRef, {
+      tournaments_id: tournamentId,
+      players_id: arrayUnion(currentUser.value.uid)
+    })
+    // Also update tournament doc: add user to players array
+    const tournamentDocRef = doc(db, 'tournaments', tournamentId)
+    await updateDoc(tournamentDocRef, {
+      players: arrayUnion(currentUser.value.uid)
+    })
+    confirmation.value[tournamentId] = `Successfully joined with team ${selectedTeamId.value}!`
+    // Simulate Discord notification
+    console.log(`Discord Notification: User ${currentUser.value.uid} joined tournament ${tournamentId} with team ${selectedTeamId.value}`)
+    // Optionally, update the local tournament object's players array
+    if (!tournaments.value.find(t => t.id === tournamentId).players) {
+      tournaments.value.find(t => t.id === tournamentId).players = []
     }
+    tournaments.value.find(t => t.id === tournamentId).players.push(currentUser.value.uid)
   } catch (error) {
-    console.error('Error joining tournament:', error)
-    alert('Failed to join tournament. Check console for details.')
+    console.error('Error joining with team:', error)
+    alert('Failed to join. Check console for details.')
   }
 }
 
-// Function to view tournament details (redirects to a route showing matches)
+// Auto-create a new team and join the tournament
+async function autoTeam(tournamentId) {
+  if (!currentUser.value) return
+  try {
+    const randomSuffix = Math.floor(Math.random() * 1000)
+    const newTeamName = `AutoTeam${randomSuffix}`
+    const docRef = await addDoc(collection(db, 'teams'), {
+      name: newTeamName,
+      captain_id: currentUser.value.uid,
+      players_id: [currentUser.value.uid],
+      tournaments_id: tournamentId
+    })
+    // Also update tournament doc: add user to players array
+    const tournamentDocRef = doc(db, 'tournaments', tournamentId)
+    await updateDoc(tournamentDocRef, {
+      players: arrayUnion(currentUser.value.uid)
+    })
+    confirmation.value[tournamentId] = `Successfully created ${newTeamName} and joined tournament ${tournamentId}!`
+    console.log(`Discord Notification: User ${currentUser.value.uid} auto-created team ${newTeamName} for tournament ${tournamentId}`)
+  } catch (error) {
+    console.error('Error auto-creating team:', error)
+    alert('Failed to auto-create team. Check console for details.')
+  }
+  expandedJoin.value = ''
+}
+
+// View tournament details (redirect to page showing matches)
 function viewTournament(tournament) {
   router.push({ name: 'TournamentDetails', params: { id: tournament.id } })
 }
 
-// Quick action functions
+// Quick actions
 function createTeam() {
   router.push('/teams')
 }
@@ -235,6 +333,36 @@ button {
 
 button:hover {
   filter: brightness(1.1);
+}
+
+/* Inline join UI */
+.join-options {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background-color: var(--color-background);
+  text-align: left;
+}
+
+.join-options select {
+  margin-right: 0.5rem;
+  padding: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.join-options h3 {
+  margin-top: 1rem;
+}
+
+.confirmation {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 4px;
+  font-weight: 500;
+  color: #0050b3;
 }
 
 button:disabled {
