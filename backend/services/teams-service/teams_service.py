@@ -62,7 +62,10 @@ def get_teams_for_player():
                     'id': team_doc.id,
                     'name': team_data['name'],
                     'captain_id': team_data['captain_id'],
+                    'captain_name': team_data['captain_name'],
                     'players_id': team_data['players_id'],
+                    'players_name': team_data['players_name'],
+                    'team_id': team_data['team_id'],
                     # 'wins': team_data.get('wins', 0),
                     # 'losses': team_data.get('losses', 0),
                     'tournaments_id': team_data.get('tournaments_id', [])

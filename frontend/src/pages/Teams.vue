@@ -10,15 +10,26 @@
           class="team-card"
         >
           <h2>{{ team.name }}</h2>
-          <p><strong>Team ID:</strong> {{ team.team_id }}</p>
-          <p><strong>Captain ID:</strong> {{ team.captain_id }}</p>
-          <p><strong>Players:</strong>
+          <!-- <p><strong>Team ID:</strong> {{ team.team_id }}</p> -->
+          <!-- <p><strong>Captain ID:</strong> {{ team.captain_id }}</p> -->
+          <p><strong>Captain Name:</strong> {{ team.captain_name }}</p>
+          <!-- <p><strong>Players:</strong> -->
             <!-- If players_id is an array, join them with commas -->
-            <span v-if="Array.isArray(team.players_id)">
+            <!-- <span v-if="Array.isArray(team.players_id)">
               {{ team.players_id.join(', ') }}
             </span>
             <span v-else>
               {{ team.players_id }}
+            </span>
+          </p> -->
+
+          <p><strong>Players:</strong>
+            <!-- If players_name is an array, join them with commas -->
+            <span v-if="Array.isArray(team.players_name)">
+              {{ team.players_name.join(', ') }}
+            </span>
+            <span v-else>
+              {{ team.players_name }}
             </span>
           </p>
           <!-- <p><strong>Wins:</strong> {{ team.wins }}</p>
