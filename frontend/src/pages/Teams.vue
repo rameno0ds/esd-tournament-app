@@ -21,8 +21,8 @@
               {{ team.players_id }}
             </span>
           </p>
-          <p><strong>Wins:</strong> {{ team.wins }}</p>
-          <p><strong>Losses:</strong> {{ team.losses }}</p>
+          <!-- <p><strong>Wins:</strong> {{ team.wins }}</p>
+          <p><strong>Losses:</strong> {{ team.losses }}</p> -->
 
           <!-- If tournaments_id is an array or single value -->
           <p v-if="team.tournaments_id">
@@ -43,45 +43,62 @@
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth, db } from '../firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+<script>
+  import { ref, onMounted } from 'vue';
+  import axios from 'axios';
+  import { getAuth } from 'firebase/auth';
 
-const router = useRouter()
-const loading = ref(true)
-const teams = ref([])
-const currentUser = ref(null)
+  export default {
+    setup() {
+      const teams = ref([]);  // Store teams the user is part of
+      const loading = ref(true);  // Loading state
+      const errorMessage = ref('');  // Error message if any
 
-// Listen for auth state; if not logged in, redirect
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    router.push('/login')
-  } else {
-    currentUser.value = user
-    loadTeams()
-  }
-})
+      // Get the current logged-in user's ID from Firebase Authentication
+      const auth = getAuth();
+      const user = auth.currentUser;
+      const userId = user ? user.uid : null;
 
-// Query the "Team" collection for teams where players_id includes the user
-async function loadTeams() {
-  try {
-    // Adjust if your collection is named "teams" instead of "Team"
-    const teamsRef = collection(db, 'Team')
-    const q = query(teamsRef, where('players_id', 'array-contains', currentUser.value.uid))
-    const snapshot = await getDocs(q)
-    teams.value = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    }))
-  } catch (error) {
-    console.error('Error loading user teams:', error)
-  } finally {
-    loading.value = false
-  }
-}
+      // Fetch the user's teams from the backend service
+      const getUserTeams = async () => {
+        if (!userId) {
+          console.error('User is not logged in.');
+          return;
+        }
+
+        try {
+          // Get the Firebase ID token for the current user
+          const idToken = await user.getIdToken();
+
+          // Send the ID token as part of the Authorization header
+          const response = await axios.get('http://localhost:5002/teams', {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,  // Pass the ID token in the header
+            }
+          });
+
+          // Assuming response contains the teams data
+          teams.value = response.data.teams;  // This should be an array of team objects
+        } catch (error) {
+          console.error('Error fetching teams: ', error);
+          errorMessage.value = 'Error fetching teams.';
+        } finally {
+          loading.value = false;
+        }
+      };
+
+      // Load the teams when the component is mounted
+      onMounted(() => {
+        getUserTeams();
+      });
+
+      return {
+        teams,
+        loading,
+        errorMessage,
+      };
+    }
+  };
 </script>
 
 <style scoped>
