@@ -57,14 +57,16 @@ def get_teams_for_player():
         # Loop through teams and check if the player is part of the team
         for team_doc in teams_snapshot:
             team_data = team_doc.to_dict()
-            if user_id in team_data.get("players_id", []):  # Default to an empty list if "players_id" is missing
+            if user_id in team_data.get("players", []):  # Default to an empty list if "players_id" is missing
+                players_map = team_data.get("players", {})
                 user_teams.append({
                     'id': team_doc.id,
                     'name': team_data['name'],
                     'captain_id': team_data['captain_id'],
                     'captain_name': team_data['captain_name'],
-                    'players_id': team_data['players_id'],
-                    'players_name': team_data['players_name'],
+                    'players': players_map,
+                    'player_ids': list(players_map.keys()),         # optional: if you still need the IDs
+                    'player_names': list(players_map.values()),      # optional: if you want just names
                     'team_id': team_data['team_id'],
                     # 'wins': team_data.get('wins', 0),
                     # 'losses': team_data.get('losses', 0),

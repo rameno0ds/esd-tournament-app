@@ -1,8 +1,12 @@
 <template>
     <div class="tournament-details">
       <h1>{{ tournamentName }}</h1>
-      <p><strong>Tournament ID:</strong> {{ tournamentId }}</p>
-  
+      <!-- <h1>{{ tournamentId }}</h1> -->
+
+      <!-- <p><strong>Tournament ID:</strong> {{ tournamentId }}</p> -->
+      <p><strong>Tournament:</strong> {{ tournamentName }}</p>
+
+
       <!-- Filter dropdown -->
       <div class="filter-section">
         <label for="filterSelect">Filter matches:</label>
@@ -53,7 +57,7 @@
       const tourneySnap = await getDoc(tourneyRef)
       if (tourneySnap.exists()) {
         const data = tourneySnap.data()
-        tournamentName.value = data.name || `Tournament ${tournamentId}`
+        tournamentName.value = data.tournamentName || `Tournament ${tournamentId}`
       }
   
       // Query matches from the top-level "matches" collection

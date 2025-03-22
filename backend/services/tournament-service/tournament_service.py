@@ -20,7 +20,7 @@ def create_tournament():
         return jsonify({"error": "Missing required fields"}), 400
     
     tournament_ref.document(data["tournament_id"]).set({
-        "name": data["name"],
+        "tournamentName": data["tournamentName"],
         "game": data.get("game", ""),
         "moderatorId": data.get("moderatorId", ""),
         "status": "upcoming",

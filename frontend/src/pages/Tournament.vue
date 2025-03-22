@@ -9,7 +9,7 @@
           v-for="tournament in tournaments"
           :key="tournament.id"
         >
-          <h2>{{ tournament.name }}</h2>
+          <h2>{{ tournament.tournamentName }}</h2>
           <p>ID: {{ tournament.id }}</p>
           <p>Status: {{ tournament.status }}</p>
 

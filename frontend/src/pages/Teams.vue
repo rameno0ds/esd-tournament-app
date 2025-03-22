@@ -25,11 +25,11 @@
 
           <p><strong>Players:</strong>
             <!-- If players_name is an array, join them with commas -->
-            <span v-if="Array.isArray(team.players_name)">
-              {{ team.players_name.join(', ') }}
+            <span v-if="Array.isArray(team.player_names)">
+              {{ team.player_names.join(', ') }}
             </span>
             <span v-else>
-              {{ team.players_name }}
+              {{ team.player_names }}
             </span>
           </p>
           <!-- <p><strong>Wins:</strong> {{ team.wins }}</p>
