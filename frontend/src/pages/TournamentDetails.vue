@@ -20,7 +20,7 @@
         <p>Status: {{ match.status }}</p>
         <p>Teams: {{ match.teamA }} vs {{ match.teamB }}</p>
         <!-- If match is upcoming, allow captain to submit availability -->
-        <button v-if="match.status === 'completed'" @click="openAvailabilityModal(match)">
+        <button v-if="match.status === 'upcoming'" @click="openAvailabilityModal(match)">
           Submit Availability
         </button>
       </div>
