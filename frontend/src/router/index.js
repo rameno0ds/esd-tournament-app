@@ -30,7 +30,7 @@ const routes = [
   { path: "/schedule", component: Schedule, meta: { requiresAuth: true } },
   { path: '/teams', name: 'Teams', component: Teams, meta: { requiresAuth: true } }, 
   { path: '/tournament/:id', name: 'TournamentDetails', component: TournamentDetails, meta: { requiresAuth: true } }, 
-  { path: '/moderator', name: 'Moderator', component: Moderator}, 
+  { path: '/moderator', name: 'Moderator', component: Moderator, meta: { requiresAuth: true }}, 
 
   { path: "/register", component: Register },
 ];

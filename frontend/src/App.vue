@@ -12,7 +12,6 @@
           <router-link to="/tournaments" class="nav-link">My Tournaments</router-link>
           <router-link to="/dispute" class="nav-link">Dispute</router-link>
         </div>
-
         <div class="navbar-right">
           <button class="icon-button" @click="openNotifications">
             <span class="material-icons">notifications</span>
@@ -57,8 +56,8 @@
       <router-view />
     </div>
 
-    <!-- Role Toggle Buttons at bottom-left -->
-    <div class="role-toggle">
+    <!-- Role Toggle Buttons at bottom-left (hide on login/register) -->
+    <div class="role-toggle" v-if="showToggle">
       <button class="toggle-btn" :class="{ active: userRole === 'player' }" @click="setUserRole('player')">
         Player
       </button>
@@ -75,34 +74,41 @@ import { useRoute, useRouter } from 'vue-router'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './firebase'
 
-// Reactive references
 const currentUser = ref(null)
 const isAuthResolved = ref(false)
-
-// Track the user role: "player" or "moderator"
-const userRole = ref('player') // default to "player" for the UI toggle
+const userRole = ref('player') // default to player
 
 // Listen for auth changes
 onAuthStateChanged(auth, (user) => {
   currentUser.value = user
   isAuthResolved.value = true
+
+  // Reset to player on login
+  if (user) {
+    userRole.value = 'player'
+  }
 })
 
 const route = useRoute()
 const router = useRouter()
 
-// Show the navbar if the user is logged in and not on /login or /register
+// Show navbar if logged in and not on login or register pages
 const showNavbar = computed(() => {
   return currentUser.value && !['/login', '/register'].includes(route.path)
 })
 
-// Profile dropdown
+// Show the role toggle only if not on login or register pages
+const showToggle = computed(() => {
+  return !['/login', '/register'].includes(route.path)
+})
+
+// Profile dropdown state
 const showProfileDropdown = ref(false)
 function toggleProfileDropdown() {
   showProfileDropdown.value = !showProfileDropdown.value
 }
 
-// Handlers for dropdown menu
+// Dropdown handlers
 function goToProfile() {
   showProfileDropdown.value = false
   router.push('/profile')
@@ -128,7 +134,7 @@ function openNotifications() {
   router.push('/notifications')
 }
 
-// Toggle role and navigate to the appropriate home page
+// Toggle role and navigate to the respective home page
 function setUserRole(role) {
   userRole.value = role
   if (role === 'player') {
@@ -148,7 +154,6 @@ function setUserRole(role) {
   margin: 0;
 }
 
-/* Loader styling while auth state is unresolved */
 .loader {
   display: flex;
   align-items: center;
@@ -157,7 +162,7 @@ function setUserRole(role) {
   font-size: 1.5rem;
 }
 
-/* Navbar container */
+/* Navbar styling */
 .navbar {
   display: flex;
   justify-content: space-between;
@@ -167,7 +172,7 @@ function setUserRole(role) {
   border-bottom: 1px solid var(--color-border);
 }
 .moderator-nav {
-  background-color: #ffe5b4; /* sample moderator navbar color */
+  background-color: #ffe5b4;
 }
 
 /* Left nav links */
@@ -203,7 +208,7 @@ function setUserRole(role) {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Profile menu styling */
+/* Profile menu */
 .profile-menu {
   position: relative;
 }
@@ -265,7 +270,7 @@ function setUserRole(role) {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Role Toggle at bottom-left */
+/* Role Toggle (bottom-left) */
 .role-toggle {
   position: fixed;
   bottom: 1rem;
