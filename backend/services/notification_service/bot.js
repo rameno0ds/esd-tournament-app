@@ -13,19 +13,12 @@ const client = new Client({
   ]
 });
 
-client.login(process.env.DISCORD_BOT_TOKEN);  // Get the token from the .env file
-
-
-
 // When the bot is ready
 client.once('ready', () => {
   console.log('Bot is online!');
 });
 
-
-// Log in using the bot's token
-client.login('YOUR_BOT_TOKEN'); // Replace 'YOUR_BOT_TOKEN' with your bot token
-
+client.login(process.env.DISCORD_BOT_TOKEN);  // Get the token from the .env file
 
 // Function to send a message to a channel
 async function sendMessage(channelId, message) {
