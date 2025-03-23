@@ -20,6 +20,30 @@ def get_user_id_from_token(id_token):
     except Exception as e:
         return None
 
+# New endpoint to fetch team info by team ID
+@app.route("/team/<team_id>", methods=["GET"])
+def get_team_by_id(team_id):
+    try:
+        team_doc = db.collection("teams").document(team_id).get()
+        if not team_doc.exists:
+            return jsonify({"error": "Team not found"}), 404
+
+        team_data = team_doc.to_dict()
+
+        return jsonify({
+            "teamId": team_id,
+            "name": team_data.get("name"),
+            "captain_id": team_data.get("captain_id"),
+            "captain_name": team_data.get("captain_name"),
+            "players": team_data.get("players", {}),
+            "player_ids": list(team_data.get("players", {}).keys()),
+            "player_names": list(team_data.get("players", {}).values())
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # Route to get the teams the user is part of
 @app.route("/teams", methods=["GET"])
 def get_teams_for_player():
@@ -85,4 +109,4 @@ def get_teams_for_player():
 
 # Run Flask App
 if __name__ == "__main__":
-    app.run(debug=True, port=5002)
+    app.run(debug=True, port=5003)

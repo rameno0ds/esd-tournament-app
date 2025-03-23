@@ -82,7 +82,7 @@
           const idToken = await user.getIdToken();
 
           // Send the ID token as part of the Authorization header
-          const response = await axios.get('http://localhost:5002/teams', {
+          const response = await axios.get('http://localhost:5003/teams', {
             headers: {
               'Authorization': `Bearer ${idToken}`,  // Pass the ID token in the header
             }
