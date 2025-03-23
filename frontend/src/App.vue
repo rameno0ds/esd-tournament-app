@@ -19,18 +19,15 @@
           </button>
           <div class="profile-menu">
             <div class="profile-avatar" @click="toggleProfileDropdown">
-              <!-- If we have a displayName -->
               <template v-if="currentUser.value && currentUser.value.displayName">
                 <span class="avatar-initial">
                   {{ currentUser.value.displayName.charAt(0).toUpperCase() }}
                 </span>
               </template>
-              <!-- Otherwise show icon -->
               <template v-else>
                 <span class="material-icons">account_circle</span>
               </template>
             </div>
-
             <div v-if="showProfileDropdown" class="dropdown">
               <ul>
                 <li @click="goToProfile">My Profile</li>
@@ -49,7 +46,6 @@
           <router-link to="/moderator" class="nav-link">Home</router-link>
           <router-link to="/mod-disputes" class="nav-link">Disputes</router-link>
         </div>
-
         <div class="navbar-right">
           <button class="icon-button" @click="logout">
             <span class="material-icons">logout</span>
@@ -63,10 +59,10 @@
 
     <!-- Role Toggle Buttons at bottom-left -->
     <div class="role-toggle">
-      <button class="toggle-btn" :class="{ active: userRole === 'player' }" @click="userRole = 'player'">
+      <button class="toggle-btn" :class="{ active: userRole === 'player' }" @click="setUserRole('player')">
         Player
       </button>
-      <button class="toggle-btn" :class="{ active: userRole === 'moderator' }" @click="userRole = 'moderator'">
+      <button class="toggle-btn" :class="{ active: userRole === 'moderator' }" @click="setUserRole('moderator')">
         Moderator
       </button>
     </div>
@@ -106,7 +102,7 @@ function toggleProfileDropdown() {
   showProfileDropdown.value = !showProfileDropdown.value
 }
 
-// Handlers
+// Handlers for dropdown menu
 function goToProfile() {
   showProfileDropdown.value = false
   router.push('/profile')
@@ -130,6 +126,16 @@ async function logout() {
 }
 function openNotifications() {
   router.push('/notifications')
+}
+
+// Toggle role and navigate to the appropriate home page
+function setUserRole(role) {
+  userRole.value = role
+  if (role === 'player') {
+    router.push('/') // Player home (Home.vue)
+  } else if (role === 'moderator') {
+    router.push('/moderator') // Moderator home (Moderator.vue)
+  }
 }
 </script>
 
@@ -161,7 +167,7 @@ function openNotifications() {
   border-bottom: 1px solid var(--color-border);
 }
 .moderator-nav {
-  background-color: #ffe5b4; /* sample color for moderator navbar */
+  background-color: #ffe5b4; /* sample moderator navbar color */
 }
 
 /* Left nav links */
@@ -169,13 +175,11 @@ function openNotifications() {
   display: flex;
   gap: 1rem;
 }
-
 .nav-link {
   text-decoration: none;
   color: var(--color-heading);
   font-weight: 500;
 }
-
 .nav-link:hover {
   text-decoration: underline;
 }
@@ -186,7 +190,6 @@ function openNotifications() {
   align-items: center;
   gap: 1rem;
 }
-
 .icon-button {
   background: none;
   border: none;
@@ -200,12 +203,10 @@ function openNotifications() {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Profile Menu Wrapper */
+/* Profile menu styling */
 .profile-menu {
   position: relative;
 }
-
-/* Avatar styling */
 .profile-avatar {
   display: inline-flex;
   align-items: center;
@@ -222,8 +223,6 @@ function openNotifications() {
   font-size: 1rem;
   color: #555;
 }
-
-/* Dropdown container */
 .dropdown {
   position: absolute;
   top: 110%;
@@ -232,12 +231,10 @@ function openNotifications() {
   border: 1px solid #ddd;
   border-radius: 8px;
   width: 200px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   padding: 0.5rem 0;
 }
-
-/* Dropdown items */
 .dropdown ul {
   list-style: none;
   margin: 0;
@@ -268,7 +265,7 @@ function openNotifications() {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Role Toggle (Player/Moderator) at bottom-left */
+/* Role Toggle at bottom-left */
 .role-toggle {
   position: fixed;
   bottom: 1rem;
@@ -277,7 +274,6 @@ function openNotifications() {
   flex-direction: column;
   gap: 0.5rem;
 }
-
 .toggle-btn {
   padding: 0.5rem 1rem;
   background: #ccc;
@@ -285,7 +281,6 @@ function openNotifications() {
   border-radius: 4px;
   cursor: pointer;
 }
-
 .toggle-btn.active {
   background: #6a5af9;
   color: #fff;
