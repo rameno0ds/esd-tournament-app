@@ -31,4 +31,5 @@ coverage
 
 # Secret keys
 backend/serviceAccountKey.json
+backend/services/notification_service/.env
 .env
