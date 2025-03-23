@@ -13,7 +13,6 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 tournament_ref = db.collection("tournaments")
-match_ref = db.collection("matches")
 
 # Create a new tournament
 @app.route("/tournament", methods=["POST"])
@@ -133,47 +132,47 @@ def add_team(tournament_id):
 #     tournament_ref.document(tournament_id).update({"teamStats": team_stats})
 #     return jsonify({"message": "Team stats updated successfully"}), 200
 
-# Update team stats after a match
-@app.route("/tournament/<tournament_id>/update_match/<match_id>", methods=["POST"])
-def update_match(tournament_id, match_id):
-    match = match_ref.document(match_id).get()
-    if not match.exists:
-        return jsonify({"error": "Match not found"}), 404
+# # Update team stats after a match
+# @app.route("/tournament/<tournament_id>/update_match/<match_id>", methods=["POST"])
+# def update_match(tournament_id, match_id):
+#     match = match_ref.document(match_id).get()
+#     if not match.exists:
+#         return jsonify({"error": "Match not found"}), 404
     
-    match_data = match.to_dict()
-    if match_data.get("tournamentId") != tournament_id:
-        return jsonify({"error": "Match does not belong to this tournament"}), 400
+#     match_data = match.to_dict()
+#     if match_data.get("tournamentId") != tournament_id:
+#         return jsonify({"error": "Match does not belong to this tournament"}), 400
     
-    result = match_data.get("result")
-    team_a = match_data.get("teamAId")
-    team_b = match_data.get("teamBId")
+#     result = match_data.get("result")
+#     team_a = match_data.get("teamAId")
+#     team_b = match_data.get("teamBId")
     
-    if not result or not team_a or not team_b:
-        return jsonify({"error": "Invalid match data"}), 400
+#     if not result or not team_a or not team_b:
+#         return jsonify({"error": "Invalid match data"}), 400
     
-    tournament = tournament_ref.document(tournament_id).get()
-    if not tournament.exists:
-        return jsonify({"error": "Tournament not found"}), 404
+#     tournament = tournament_ref.document(tournament_id).get()
+#     if not tournament.exists:
+#         return jsonify({"error": "Tournament not found"}), 404
     
-    tournament_data = tournament.to_dict()
-    teams = tournament_data.get("teams", [])
+#     tournament_data = tournament.to_dict()
+#     teams = tournament_data.get("teams", [])
     
-    for team in teams:
-        if team["teamId"] == team_a and result == "teamA won":
-            team["teamStats"]["wins"] += 1
-            team["teamStats"]["elo"] += 20
-        elif team["teamId"] == team_b and result == "teamB won":
-            team["teamStats"]["wins"] += 1
-            team["teamStats"]["elo"] += 20
-        elif team["teamId"] == team_a and result == "teamB won":
-            team["teamStats"]["losses"] += 1
-            team["teamStats"]["elo"] -= 20
-        elif team["teamId"] == team_b and result == "teamA won":
-            team["teamStats"]["losses"] += 1
-            team["teamStats"]["elo"] -= 20
+#     for team in teams:
+#         if team["teamId"] == team_a and result == "teamA won":
+#             team["teamStats"]["wins"] += 1
+#             team["teamStats"]["elo"] += 20
+#         elif team["teamId"] == team_b and result == "teamB won":
+#             team["teamStats"]["wins"] += 1
+#             team["teamStats"]["elo"] += 20
+#         elif team["teamId"] == team_a and result == "teamB won":
+#             team["teamStats"]["losses"] += 1
+#             team["teamStats"]["elo"] -= 20
+#         elif team["teamId"] == team_b and result == "teamA won":
+#             team["teamStats"]["losses"] += 1
+#             team["teamStats"]["elo"] -= 20
     
-    tournament_ref.document(tournament_id).update({"teams": teams})
-    return jsonify({"message": "Match results updated successfully"}), 200
+#     tournament_ref.document(tournament_id).update({"teams": teams})
+#     return jsonify({"message": "Match results updated successfully"}), 200
 
 if __name__ == "__main__":
     app.run(port=5002, debug=True)
