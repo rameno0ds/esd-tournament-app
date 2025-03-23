@@ -36,13 +36,13 @@
           <p><strong>Losses:</strong> {{ team.losses }}</p> -->
 
           <!-- If tournaments_id is an array or single value -->
-          <p v-if="team.tournaments_id">
+          <p v-if="team.tournament_names">
             <strong>Tournaments:</strong>
-            <span v-if="Array.isArray(team.tournaments_id)">
-              {{ team.tournaments_id.join(', ') }}
+            <span v-if="Array.isArray(team.tournament_names)">
+              {{ team.tournament_names.join(', ') }}
             </span>
             <span v-else>
-              {{ team.tournaments_id }}
+              {{ team.tournament_names }}
             </span>
           </p>
         </div>
