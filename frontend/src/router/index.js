@@ -8,6 +8,7 @@ import Register from "@/pages/Register.vue";
 import Schedule from "@/pages/Schedule.vue";
 import Teams from '@/pages/Teams.vue';
 import TournamentDetails from '@/pages/TournamentDetails.vue';
+import Moderator from '@/pages/Moderator.vue';
 import { getAuth } from 'firebase/auth'; // Import Firebase Authentication
 
 
@@ -29,6 +30,7 @@ const routes = [
   { path: "/schedule", component: Schedule, meta: { requiresAuth: true } },
   { path: '/teams', name: 'Teams', component: Teams, meta: { requiresAuth: true } }, 
   { path: '/tournament/:id', name: 'TournamentDetails', component: TournamentDetails, meta: { requiresAuth: true } }, 
+  { path: '/moderator', name: 'Moderator', component: Moderator}, 
 
   { path: "/register", component: Register },
 ];
