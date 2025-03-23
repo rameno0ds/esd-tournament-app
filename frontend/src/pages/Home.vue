@@ -2,54 +2,70 @@
   <!-- Render only if user data is loaded -->
   <div v-if="currentUser" class="home-page">
     <h1>Welcome, {{ username }}!</h1>
-    <h2>All Ongoing Tournaments</h2>
 
-    <!-- Loader while fetching tournaments -->
-    <div v-if="loading" class="loader">Loading tournaments...</div>
-    <div v-else>
-      <div class="tournament-grid">
-        <div class="tournament-card" v-for="tourney in tournaments" :key="tourney.id">
-          <h2>{{ tourney.name }}</h2>
-          <p>ID: {{ tourney.id }}</p>
-          <p>Status: {{ tourney.status }}</p>
+    <div class="tournament-columns">
+      <div class="tournament-section">
+        <h2>All Ongoing Tournaments</h2>
 
-          <!-- If the user has already joined this tournament -->
-          <div v-if="hasJoined(tourney)">
-            <button disabled>Joined</button>
-            <button @click="viewTournament(tourney)">View Tournament</button>
-          </div>
-          <!-- Otherwise, show the join button which toggles the join UI -->
-          <div v-else>
-            <button @click="toggleJoin(tourney.id)">Join Tournament</button>
-          </div>
 
-          <!-- Inline UI for joining (shown only for the expanded tournament) -->
-          <div v-if="expandedJoin === tourney.id" class="join-options">
-            <h3>Join with an Existing Team</h3>
-            <label for="teamSelect">Select a Team:</label>
-            <select id="teamSelect" v-model="selectedTeamId">
-              <option disabled value="">-- Choose a team --</option>
-              <option
-                v-for="team in availableTeams(tourney.id)"
-                :key="team.id"
-                :value="team.id"
-              >
-                {{ team.name }} (ID: {{ team.id }})
-              </option>
-            </select>
-            <button @click="joinWithTeam(tourney.id)" :disabled="!selectedTeamId">
-              Confirm
-            </button>
-            <h3>Or Auto-Create a Team</h3>
-            <button @click="autoTeam(tourney.id)">Auto Team</button>
-            <!-- Confirmation message for this tournament's join action -->
-            <div v-if="confirmation[tourney.id]" class="confirmation">
-              {{ confirmation[tourney.id] }}
+        <!-- Loader while fetching tournaments -->
+        <div v-if="loading" class="loader">Loading tournaments...</div>
+        <div v-else>
+          <div class="tournament-grid">
+            <div class="tournament-card" v-for="tourney in tournaments" :key="tourney.id">
+              <h2>{{ tourney.tournamentName }}</h2>
+              <p>ID: {{ tourney.id }}</p>
+              <p>Status: {{ tourney.status }}</p>
+
+              <!-- If the user has already joined this tournament -->
+              <div v-if="hasJoined(tourney)">
+                <button disabled>Joined</button>
+                <button @click="viewTournament(tourney)">View Tournament</button>
+              </div>
+              <!-- Otherwise, show the join button which toggles the join UI -->
+              <div v-else>
+                <button @click="toggleJoin(tourney.id)">Join Tournament</button>
+              </div>
+
+              <!-- Inline UI for joining (shown only for the expanded tournament) -->
+              <div v-if="expandedJoin === tourney.id" class="join-options">
+                <h3>Join with an Existing Team</h3>
+                <label for="teamSelect">Select a Team:</label>
+                <select id="teamSelect" v-model="selectedTeamId">
+                  <option disabled value="">-- Choose a team --</option>
+                  <option v-for="team in availableTeams(tourney.id)" :key="team.id" :value="team.id">
+                    {{ team.name }} (ID: {{ team.id }})
+                  </option>
+                </select>
+                <button @click="joinWithTeam(tourney.id)" :disabled="!selectedTeamId">
+                  Confirm
+                </button>
+                <h3>Or Auto-Create a Team</h3>
+                <button @click="autoTeam(tourney.id)">Auto Team</button>
+                <!-- Confirmation message for this tournament's join action -->
+                <div v-if="confirmation[tourney.id]" class="confirmation">
+                  {{ confirmation[tourney.id] }}
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+
+
+
+
+        <h2>Upcoming Tournaments</h2>
+        <div class="tournament-grid">
+          <div class="tournament-card" v-for="tourney in upcomingTournaments" :key="tourney.id">
+            <h2>{{ tourney.tournamentName }}</h2>
+            <p>ID: {{ tourney.id }}</p>
+            <p>Status: {{ tourney.status }}</p>
+            <button @click="viewTournament(tourney)">View Details</button>
           </div>
         </div>
       </div>
     </div>
+
 
     <!-- Announcements / News -->
     <section class="announcements">
@@ -108,6 +124,8 @@ const loading = ref(true)
 // Tournaments and join confirmation messages (keyed by tournament id)
 const tournaments = ref([])
 const confirmation = ref({})
+const upcomingTournaments = ref([])
+
 
 // List of teams the user belongs to
 const myTeams = ref([])
@@ -144,6 +162,7 @@ onAuthStateChanged(auth, (user) => {
   } else {
     currentUser.value = user
     loadOngoingTournaments()
+    loadUpcomingTournaments()
     loadMyTeams()
   }
 })
@@ -165,6 +184,22 @@ async function loadOngoingTournaments() {
     loading.value = false
   }
 }
+
+async function loadUpcomingTournaments() {
+  try {
+    const tournamentsRef = collection(db, 'tournaments')
+    const q = query(tournamentsRef, where('status', '==', 'upcoming'))
+    const snapshot = await getDocs(q)
+    upcomingTournaments.value = snapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+    console.log("Fetched upcoming tournaments:", upcomingTournaments.value)
+  } catch (error) {
+    console.error('Error loading upcoming tournaments:', error)
+  }
+}
+
 
 // Load user's teams from Firestore
 async function loadMyTeams() {
@@ -404,4 +439,31 @@ ul li:last-child {
   flex-wrap: wrap;
   gap: 1rem;
 }
+
+.tournament-columns {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.tournament-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+.tournament-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.tournament-card {
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
 </style>
