@@ -59,6 +59,7 @@ def get_teams_for_player():
             team_data = team_doc.to_dict()
             if user_id in team_data.get("players", []):  # Default to an empty list if "players_id" is missing
                 players_map = team_data.get("players", {})
+                tournaments_map = team_data.get("tournaments", {})
                 user_teams.append({
                     'id': team_doc.id,
                     'name': team_data['name'],
@@ -70,7 +71,8 @@ def get_teams_for_player():
                     'team_id': team_data['team_id'],
                     # 'wins': team_data.get('wins', 0),
                     # 'losses': team_data.get('losses', 0),
-                    'tournaments_id': team_data.get('tournaments_id', [])
+                    'tournament_id': list(tournaments_map.keys()),
+                    'tournament_names': list(tournaments_map.values())
                 })
 
 
