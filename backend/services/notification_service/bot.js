@@ -1,6 +1,5 @@
 // channel link: https://discord.com/channels/1353049034041851986/1353049034041851988
-// tournament bot is able to send notifications in the channel in ESD server
-
+// run node bot.js, and view the sent notfication in the ESD server, under gernal channel
 
 require('dotenv').config(); // This loads the .env file
 const { Client, GatewayIntentBits } = require('discord.js');
@@ -38,7 +37,33 @@ client.once('ready', () => {
   sendMessage(channelId, message);
 });
 
+//Scenario 1: Team Assignment - player (private message)
+// client.once('team assigned', () => {
+//     const channelId = ''; #need to change to DM
+//     const message = 'Hello {player/username}, {player/username} has joined your Team {team/teamId}.';
+//     sendMessage(channelId, message);
+//   });
 
-// run node bot.js, and view the sent notfication in the server
-//call sendMessage() in the relevant microservice when an event occurs.
 
+//Scenario 2: Match making - tournament (server)
+// client.once('match assigned', () => {
+//     const channelId = '1353049034041851988'; 
+//     const message = 'This is the upcoming schedule: {schedule}.';
+//     sendMessage(channelId, message);
+//   });
+
+
+//Scenario 3: Dispute resolution - moderator (private message)
+// client.once('dispute open', () => {
+//     const channelId = ''; #need to change to DM
+//     const message = 'Hello {moderator/username}, you have a new Dispute {dispute/disputeId} to review.';
+//     sendMessage(channelId, message);
+//   });
+
+
+//Scenario 3: Dispute resolution - tournament (server)
+// client.once('', () => {
+//     const channelId = '1353049034041851988'; 
+//     const message = 'Results for dispute for Match {match/matchId} is {dispute/status}.';
+//     sendMessage(channelId, message);
+//   });
