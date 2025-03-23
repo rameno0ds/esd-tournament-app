@@ -60,7 +60,7 @@
             <h2>{{ tourney.tournamentName }}</h2>
             <p>ID: {{ tourney.id }}</p>
             <p>Status: {{ tourney.status }}</p>
-            <button @click="viewTournament(tourney)">View Details</button>
+            <button @click="viewUpcomingTournament(tourney)">View Details</button>
           </div>
         </div>
       </div>
@@ -293,6 +293,11 @@ async function autoTeam(tournamentId) {
 // View tournament details (redirect to page showing matches)
 function viewTournament(tournament) {
   router.push({ name: 'TournamentDetails', params: { id: tournament.id } })
+}
+
+// View UPCOMING tournament details (redirect to page)
+function viewUpcomingTournament(tournament) {
+  router.push({ name: 'UpcomingTournamentDetails', params: { id: tournament.id } })
 }
 
 // Quick actions

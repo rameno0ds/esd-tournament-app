@@ -4,10 +4,10 @@ import router from './router'
 import axios from "axios";
 import './assets/main.css'
 
-axios
-  .get("http://127.0.0.1:5000/")
-  .then((response) => console.log(response.data))
-  .catch((error) => console.error("Error:", error));
+// axios
+//   .get("http://127.0.0.1:5000/")
+//   .then((response) => console.log(response.data))
+//   .catch((error) => console.error("Error:", error));
 
 const app = createApp(App);
 app.use(router);
