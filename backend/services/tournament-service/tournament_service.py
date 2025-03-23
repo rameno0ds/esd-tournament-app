@@ -13,6 +13,7 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 tournament_ref = db.collection("tournaments")
+match_ref = db.collection("matches")
 
 # Create a new tournament
 @app.route("/tournament", methods=["POST"])
