@@ -35,6 +35,29 @@ def create_tournament():
     })
     return jsonify({"message": "Tournament created successfully"}), 201
 
+# Get all tournaments or filter by status
+@app.route("/tournaments", methods=["GET"])
+def get_all_tournaments():
+    try:
+        status = request.args.get("status")  # Optional query param
+        tournaments_query = tournament_ref
+
+        if status:
+            tournaments_query = tournament_ref.where("status", "==", status)
+
+        snapshot = tournaments_query.stream()
+        tournaments = []
+
+        for doc in snapshot:
+            data = doc.to_dict()
+            data["id"] = doc.id  # include document ID
+            tournaments.append(data)
+
+        return jsonify(tournaments), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # Get tournament details
 @app.route("/tournament/<tournament_id>", methods=["GET"])
 def get_tournament(tournament_id):
@@ -49,6 +72,54 @@ def update_tournament(tournament_id):
     data = request.json
     tournament_ref.document(tournament_id).update({"status": data.get("status", "upcoming")})
     return jsonify({"message": "Tournament updated successfully"}), 200
+
+# Add a player to a tournament (via composite service)
+@app.route("/tournament/<tournament_id>/add_player", methods=["PUT"])
+def add_player_to_tournament(tournament_id):
+    data = request.get_json()
+    player_id = data.get("player_id")  # use snake_case to match your composite payload
+
+    if not player_id:
+        return jsonify({"error": "Missing player_id"}), 400
+
+    tournament_doc = tournament_ref.document(tournament_id).get()
+    if not tournament_doc.exists:
+        return jsonify({"error": "Tournament not found"}), 404
+
+    tournament_data = tournament_doc.to_dict()
+    players = tournament_data.get("players", [])
+
+    if player_id in players:
+        return jsonify({"message": "Player already in tournament"}), 200
+
+    players.append(player_id)
+    tournament_ref.document(tournament_id).update({"players": players})
+
+    return jsonify({"message": "Player added to tournament"}), 200
+
+@app.route("/tournament/<tournament_id>/remove_player", methods=["PUT"])
+def remove_player_from_tournament(tournament_id):
+    data = request.get_json()
+    player_id = data.get("player_id")
+
+    if not player_id:
+        return jsonify({"error": "Missing player_id"}), 400
+
+    tournament_doc = tournament_ref.document(tournament_id).get()
+    if not tournament_doc.exists:
+        return jsonify({"error": "Tournament not found"}), 404
+
+    tournament_data = tournament_doc.to_dict()
+    players = tournament_data.get("players", [])
+
+    if player_id not in players:
+        return jsonify({"message": "Player not found in tournament"}), 200
+
+    players.remove(player_id)
+    tournament_ref.document(tournament_id).update({"players": players})
+
+    return jsonify({"message": "Player removed from tournament"}), 200
+
 
 # # Add a player to a tournament
 # @app.route("/tournament/<tournament_id>/add_player", methods=["POST"])

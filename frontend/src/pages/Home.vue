@@ -115,6 +115,8 @@ import {
   addDoc,
   arrayUnion
 } from 'firebase/firestore'
+import axios from 'axios'
+
 
 // Router and reactive state
 const router = useRouter()
@@ -201,22 +203,31 @@ async function loadUpcomingTournaments() {
 }
 
 
-// Load user's teams from Firestore
+// call to your Teams microservice
 async function loadMyTeams() {
   if (!currentUser.value) return
   try {
-    const teamsRef = collection(db, 'teams')
-    const q = query(teamsRef, where('players_id', 'array-contains', currentUser.value.uid))
-    const snapshot = await getDocs(q)
-    myTeams.value = snapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...docSnap.data()
+    const token = await currentUser.value.getIdToken()
+    const response = await axios.get("http://localhost:5003/teams", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    myTeams.value = response.data.teams.map(team => ({
+      id: team.id,
+      name: team.name,
+      captain_id: team.captain_id,
+      players: team.players,
+      tournaments_id: team.tournament_id?.[0] || null  // adjust if multiple tournaments allowed
     }))
-    console.log("Loaded myTeams:", myTeams.value)
+
+    console.log("Loaded myTeams (via microservice):", myTeams.value)
   } catch (error) {
-    console.error('Error loading user teams:', error)
+    console.error("Error loading user teams from microservice:", error)
   }
 }
+
 
 // Helper: Return teams not already in the tournament
 function availableTeams(tournamentId) {

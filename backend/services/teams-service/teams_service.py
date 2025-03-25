@@ -106,6 +106,50 @@ def get_teams_for_player():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+    
+@app.route("/team/<team_id>/join", methods=["POST"])
+def join_team(team_id):
+    try:
+        # Get the Firebase ID token from the Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Missing or invalid Authorization header"}), 400
+        
+        id_token = auth_header.split(" ")[1]
+        user_id = get_user_id_from_token(id_token)
+
+        if not user_id:
+            return jsonify({"error": "Invalid token or user not authenticated"}), 400
+
+        # Get the user name from request body
+        data = request.get_json()
+        name = data.get("name", "Unnamed Player")
+
+        # Fetch the team
+        team_ref = db.collection("teams").document(team_id)
+        team_doc = team_ref.get()
+
+        if not team_doc.exists:
+            return jsonify({"error": "Team not found"}), 404
+
+        team_data = team_doc.to_dict()
+        players = team_data.get("players", {})
+
+        if user_id in players:
+            return jsonify({"message": "User already in this team"}), 200
+
+        if len(players) >= 5:
+            return jsonify({"error": "Team is already full"}), 400
+
+        players[user_id] = name
+        team_ref.update({"players": players})
+
+        return jsonify({"message": "User successfully added to team"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
 
 # Run Flask App
 if __name__ == "__main__":
