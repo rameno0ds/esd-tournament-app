@@ -150,9 +150,7 @@ def get_user_teams_for_tournament():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-
-
+    
 # Run Flask App
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

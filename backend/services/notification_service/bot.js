@@ -1,5 +1,5 @@
 // channel link: https://discord.com/channels/1353049034041851986/1353049034041851988
-// run node bot.js, and view the sent notfication in the ESD server, under gernal channel
+// run node bot.js, and view the sent notfication in the ESD server, under general channel
 
 require('dotenv').config(); // This loads the .env file
 const { Client, GatewayIntentBits } = require('discord.js');
@@ -30,40 +30,16 @@ async function sendMessage(channelId, message) {
 }
 
 
-// Example: Sending a test message to a specific channel
-client.once('ready', () => {
-  const channelId = '1353049034041851988'; // Replace with the target channel ID
-  const message = 'Hello, this is a test notification from the tournament!';
-  sendMessage(channelId, message);
-});
+// Scenario 2: Match making - tournament (server)
+client.once('ready', () => { //need ti hnage function
+    const channelId = process.env.CHANNEL_ID; 
+    const message = 'This is the upcoming schedule: {schedule}.';
+    sendMessage(channelId, message);
+  });
 
-//Scenario 1: Team Assignment - player (private message)
-// client.once('team assigned', () => {
-//     const channelId = ''; #need to change to DM
-//     const message = 'Hello {player/username}, {player/username} has joined your Team {team/teamId}.';
-//     sendMessage(channelId, message);
-//   });
-
-
-//Scenario 2: Match making - tournament (server)
-// client.once('match assigned', () => {
-//     const channelId = '1353049034041851988'; 
-//     const message = 'This is the upcoming schedule: {schedule}.';
-//     sendMessage(channelId, message);
-//   });
-
-
-//Scenario 3: Dispute resolution - moderator (private message)
-// client.once('dispute open', () => {
-//     const channelId = ''; #need to change to DM
-//     const message = 'Hello {moderator/username}, you have a new Dispute {dispute/disputeId} to review.';
-//     sendMessage(channelId, message);
-//   });
-
-
-//Scenario 3: Dispute resolution - tournament (server)
-// client.once('', () => {
-//     const channelId = '1353049034041851988'; 
-//     const message = 'Results for dispute for Match {match/matchId} is {dispute/status}.';
-//     sendMessage(channelId, message);
-//   });
+// Scenario 3: Dispute resolution - tournament (server)
+client.once('ready', () => { //need to change function
+    const channelId = process.env.CHANNEL_ID; 
+    const message = "Results for dispute for {matchId} is {status}.";
+    sendMessage(channelId, message);
+  });
