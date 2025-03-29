@@ -61,14 +61,14 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import axios from 'axios'
 
 const route = useRoute()
-const tournamentId = route.params.id  // Tournament doc ID from route
+const tournamentId = route.params.id  // e.g. "BNck5GT9pQx8DVQ9x3sF"
 const tournamentName = ref('Tournament Details')
 const matches = ref([])
 
-// Filter state for matches
 const selectedFilter = ref('all')
 const filteredMatches = computed(() => {
   if (selectedFilter.value === 'all') return matches.value
@@ -81,27 +81,36 @@ const filteredMatches = computed(() => {
   return matches.value
 })
 
-// Modal state for availability submission
+// Modal state
 const showAvailabilityModal = ref(false)
 const selectedMatch = ref(null)
 const selectedDays = ref([])
-// Days of the week for checkboxes
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
-// Message to display after submission
 const modalMessage = ref('')
 
-// Load tournament details and matches on mount
+// Reactive variable to hold the current player's team ID
+const currentTeamId = ref(null)
+
+// Get the current user and then fetch the team ID
+const auth = getAuth()
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Here, replace the next line with a call to your teams service
+    // to fetch the team info for the current tournament.
+    // For this example, we simulate that the player's team is "SMUBEST".
+    currentTeamId.value = "SMUBEST"
+  }
+})
+
+// Load tournament details and matches
 onMounted(async () => {
   try {
-    // Load tournament details
     const tourneyRef = doc(db, 'tournaments', tournamentId)
     const tourneySnap = await getDoc(tourneyRef)
     if (tourneySnap.exists()) {
       const data = tourneySnap.data()
       tournamentName.value = data.tournamentName || data.name || `Tournament ${tournamentId}`
     }
-    // Query matches from the "matches" collection for this tournament
     const matchesRef = collection(db, 'matches')
     const q = query(matchesRef, where('tournamentId', '==', tournamentId))
     const snapshot = await getDocs(q)
@@ -114,15 +123,15 @@ onMounted(async () => {
   }
 })
 
-// Open the modal for a specific match
+// Open modal
 function openAvailabilityModal(match) {
   selectedMatch.value = match
-  selectedDays.value = []      // reset selections
-  modalMessage.value = ''      // clear previous messages
+  selectedDays.value = []
+  modalMessage.value = ''
   showAvailabilityModal.value = true
 }
 
-// Close the modal
+// Close modal
 function closeModal() {
   showAvailabilityModal.value = false
   selectedMatch.value = null
@@ -130,23 +139,22 @@ function closeModal() {
   modalMessage.value = ''
 }
 
-// Submit availability to the scheduling microservice
+// Submit availability using the dynamic team ID
 async function submitAvailability() {
   if (!selectedMatch.value) return
+  if (!currentTeamId.value) {
+    modalMessage.value = "Team info not loaded."
+    return
+  }
   try {
-    // Build payload: you may need to adjust this based on your schedule_service.py
     const payload = {
-      matchId: selectedMatch.value.id,
-      tournamentId: tournamentId,
-      availableDays: selectedDays.value
+      teamId: currentTeamId.value,
+      availableDays: selectedDays.value,  // e.g. ["Tuesday"]
+      roundNumber: 2
     }
-    // POST to your availability endpoint
-    const response = await axios.post(`http://localhost:5003/schedule/${tournamentId}/availability`, payload)
+    const response = await axios.post(`http://localhost:5005/schedule/${tournamentId}/availability`, payload)
     modalMessage.value = response.data.message || "Availability submitted successfully!"
-    // Optionally close the modal after a short delay
-    setTimeout(() => {
-      closeModal()
-    }, 2000)
+    setTimeout(() => { closeModal() }, 2000)
   } catch (error) {
     console.error('Error submitting availability:', error)
     modalMessage.value = "Failed to submit availability. Please try again."
@@ -155,13 +163,11 @@ async function submitAvailability() {
 </script>
 
 <style scoped>
+/* (Styles remain unchanged) */
 .tournament-details {
   max-width: 1000px;
   margin: 2rem auto;
   padding: 1rem;
-}
-h1 {
-  margin-bottom: 0.5rem;
 }
 .filter-section {
   margin: 1rem 0;
@@ -183,8 +189,6 @@ h1 {
   text-align: center;
   font-style: italic;
 }
-
-/* Modal styles */
 .modal-overlay {
   position: fixed;
   top: 0;

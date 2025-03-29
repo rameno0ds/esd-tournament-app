@@ -12,8 +12,7 @@
     <div v-else>
       <div v-if="ongoingTournaments.length" class="tournament-list">
         <div v-for="tourney in ongoingTournaments" :key="tourney.id" class="tournament-card">
-          <h2>{{ tourney.name }}</h2>
-          <p>Tournament ID: {{ tourney.id }}</p>
+          <h2>{{ tourney.tournamentName }}</h2>
           <p>Status: {{ tourney.status }}</p>
 
           <!-- Button to toggle weeks display -->
@@ -21,12 +20,12 @@
             {{ tourney.showWeeks ? 'Hide Weeks' : 'View Weeks' }}
           </button>
 
-          <!-- If showWeeks is true, list the weeks -->
+          <!-- If showWeeks is true, list the "weeks" or "rounds" -->
           <div v-if="tourney.showWeeks" class="weeks-section">
-            <h3>Weeks</h3>
+            <h3>Weeks/Rounds</h3>
             <ul>
               <li v-for="week in tourney.weeks" :key="week.number" class="week-item">
-                <strong>Week {{ week.number }}</strong> — Status: {{ week.status }}
+                <strong>Round {{ week.number }}</strong> — Status: {{ week.status }}
 
                 <!-- If completed, show "Match Record" button -->
                 <button v-if="week.status === 'completed'" @click="viewMatchRecord(tourney.id, week.number)">
@@ -38,8 +37,8 @@
                   Create Matches
                 </button>
 
-                <!-- If in_progress, you could show "View Matches" or something else -->
-                <button v-else-if="week.status === 'in_progress'" @click="viewMatches(tourney.id, week.number)">
+                <!-- If ongoing, you could show "View Matches" or something else -->
+                <button v-else-if="week.status === 'ongoing'" @click="viewMatches(tourney.id, week.number)">
                   View Matches
                 </button>
               </li>
@@ -80,15 +79,25 @@ async function fetchOngoingTournaments() {
     }
     const idToken = await user.getIdToken()
 
-    const response = await axios.get('http://localhost:5002/tournament', {
+    // Example: fetch all tournaments with status "ongoing"
+    const response = await axios.get('http://localhost:5002/tournaments?status=ongoing', {
       headers: {
-        'Authorization': `Bearer ${idToken}`
+        Authorization: `Bearer ${idToken}`
       }
     })
-    console.log('response.data:', response.data)
+    // Suppose the response has a structure like:
+    // [
+    //   { id: "BNck5GT9pQx8DVQ9x3sF", name: "MyTournament", status: "ongoing", ... }
+    // ]
     ongoingTournaments.value = response.data.map(t => ({
       ...t,
-      showWeeks: false  // For toggling the display of weeks
+      showWeeks: false,
+      weeks: [
+        // Example data for demonstration:
+        { number: 1, status: 'completed' },
+        { number: 2, status: 'upcoming' },
+        { number: 3, status: 'ongoing' }
+      ]
     }))
     
   } catch (error) {
@@ -109,53 +118,32 @@ function toggleWeeks(tournamentId) {
 
 // If completed => "Match Record" button
 function viewMatchRecord(tournamentId, weekNumber) {
-  // For demonstration, just alert
-  alert(`Viewing match record for Tournament ${tournamentId}, Week ${weekNumber}`)
+  alert(`Viewing match record for Tournament ${tournamentId}, Round ${weekNumber}`)
 }
 
 // If upcoming => "Create Matches" button
-async function createMatches(tournamentId, weekNumber) {
+async function createMatches(tournamentId, roundNumber) {
   try {
-    const auth = getAuth()
-    const user = auth.currentUser
-    if (!user) {
-      errorMessage.value = 'You must be logged in as a moderator.'
-      return
-    }
-    const idToken = await user.getIdToken()
+    // Option A: Directly call the schedule service's create_matches endpoint:
+    // const response = await axios.post(`http://localhost:5003/schedule/${tournamentId}/round/${roundNumber}/create_matches`)
 
-    // POST to /matchmaking
-    const response = await axios.post('http://localhost:5005/matchmaking', 
-      {
-        tournamentId,
-        weekNumber
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      }
-    )
-    // Expect response.data to have a success message or updated matches
-    alert(`Matches for Week ${weekNumber} created!`)
-    
-    // Optionally, update the week status to 'in_progress'
-    const tourney = ongoingTournaments.value.find(t => t.id === tournamentId)
-    if (tourney) {
-      const week = tourney.weeks.find(w => w.number === weekNumber)
-      if (week) {
-        week.status = 'in_progress'
-      }
-    }
+    // Option B: Call the composite "Make a Match" service:
+    const response = await axios.post('http://localhost:5006/make_matches', {
+      tournamentId,
+      roundNumber
+    })
+
+    console.log('Matches created:', response.data)
+    alert(response.data.message)
   } catch (error) {
     console.error('Error creating matches:', error)
-    errorMessage.value = 'Failed to create matches.'
+    alert('Failed to create matches. Check console for details.')
   }
 }
 
-// If in_progress => "View Matches" button
+// If ongoing => "View Matches" button
 function viewMatches(tournamentId, weekNumber) {
-  alert(`Viewing matches for Tournament ${tournamentId}, Week ${weekNumber}`)
+  alert(`Viewing matches for Tournament ${tournamentId}, Round ${weekNumber}`)
   // e.g., navigate to a page that lists all matches for that round
 }
 </script>

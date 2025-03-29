@@ -1,80 +1,108 @@
+# schedule_service.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, firestore
+import logging
 
-# Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+app.url_map.strict_slashes = False  # Allow trailing slash variations
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+logging.basicConfig(level=logging.INFO)
 
-# Initialize Firebase
+# Initialize Firebase – update the path accordingly
 cred = credentials.Certificate("../../serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 schedule_ref = db.collection("schedules")
 
-tournament_ref = db.collection("tournaments")
-match_ref = db.collection("matches")
-
-# Create a new schedule
-@app.route("/schedule", methods=["POST"])
+# --- Create Schedule Document ---
+@app.route("/schedule", methods=["POST", "OPTIONS"])
 def create_schedule():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
     data = request.json
     tournament_id = data.get("tournamentId")
-    if not tournament_id:
-        return jsonify({"error": "Tournament ID is required"}), 400
-    
-    # Determine the round number by counting existing schedules for the tournament
-    existing_schedules = schedule_ref.where("tournamentId", "==", tournament_id).stream()
-    round_number = sum(1 for _ in existing_schedules) + 1
-    
-    schedule_ref.add({
-        "tournamentId": tournament_id,
-        "dateTime": data.get("dateTime"),
+    round_number = data.get("roundNumber")
+    tournament_name = data.get("tournamentName")
+    if not tournament_id or round_number is None or not tournament_name:
+        return jsonify({"error": "tournamentId, roundNumber, and tournamentName are required"}), 400
+
+    # Check if schedule already exists.
+    for doc in schedule_ref.where("roundNumber", "==", round_number).stream():
+        d = doc.to_dict()
+        if d.get("tournament") and tournament_id in d["tournament"]:
+            return jsonify({"error": "Schedule for this tournament and round already exists"}), 400
+
+    schedule_doc = {
+        "tournament": { tournament_id: tournament_name },
         "roundNumber": round_number,
+        "dateTime": data.get("dateTime", ""),
         "teamAvailableDays": {}
-    })
-    return jsonify({"message": "Schedule created successfully", "roundNumber": round_number}), 201
+    }
+    schedule_ref.add(schedule_doc)
+    logging.info(f"Created schedule for tournament {tournament_id}, round {round_number}")
+    return jsonify({"message": "Schedule created successfully"}), 201
 
-# Get schedule details
-@app.route("/schedule/<tournament_id>", methods=["GET"])
-def get_schedule(tournament_id):
-    schedules = schedule_ref.where("tournamentId", "==", tournament_id).stream()
-    schedule_list = [{"id": s.id, **s.to_dict()} for s in schedules]
-    if schedule_list:
-        return jsonify(schedule_list), 200
-    return jsonify({"error": "Schedule not found"}), 404
+# --- Get Schedules for a Tournament ---
+@app.route("/schedule/<tournament_id>", methods=["GET", "OPTIONS"])
+def get_schedules(tournament_id):
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
 
-# Set team availability
-@app.route("/schedule/<tournament_id>/availability", methods=["POST"])
-def set_team_availability(tournament_id):
+    schedules = []
+    for doc in schedule_ref.stream():
+        d = doc.to_dict()
+        if d.get("tournament") and tournament_id in d["tournament"]:
+            schedules.append({"id": doc.id, **d})
+    if not schedules:
+        return jsonify({"error": "No schedules found for this tournament"}), 404
+    return jsonify(schedules), 200
+
+# --- Submit Availability ---
+@app.route("/schedule/<tournament_id>/availability", methods=["POST", "OPTIONS"])
+def submit_availability(tournament_id):
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
     data = request.json
     team_id = data.get("teamId")
     available_days = data.get("availableDays", [])
     round_number = data.get("roundNumber")
-    
+    logging.info(f"submit_availability payload: {data}")
     if not team_id or not available_days or round_number is None:
-        return jsonify({"error": "Team ID, available days, and round number are required"}), 400
-    
-    schedule_query = schedule_ref.where("tournamentId", "==", tournament_id).where("roundNumber", "==", round_number).stream()
-    schedule_docs = list(schedule_query)
-    
-    if not schedule_docs:
-        return jsonify({"error": "Schedule for the specified round not found"}), 404
-    
-    schedule_doc = schedule_docs[0]
-    schedule_data = schedule_doc.to_dict()
-    team_available_days = schedule_data.get("teamAvailableDays", {})
-    
+        return jsonify({"error": "Missing teamId, availableDays, or roundNumber"}), 400
+
+    selected_doc = None
+    for doc in schedule_ref.where("roundNumber", "==", round_number).stream():
+        d = doc.to_dict()
+        if d.get("tournament") and tournament_id in d["tournament"]:
+            selected_doc = doc
+            break
+
+    if not selected_doc:
+        return jsonify({"error": "Schedule for that round not found"}), 404
+
+    schedule_data = selected_doc.to_dict()
+    team_availability = schedule_data.get("teamAvailableDays", {})
+    logging.info(f"Before update, teamAvailableDays: {team_availability}")
+
     for day in available_days:
-        if day not in team_available_days:
-            team_available_days[day] = []
-        if team_id not in team_available_days[day]:
-            team_available_days[day].append(team_id)
-    
-    schedule_ref.document(schedule_doc.id).update({"teamAvailableDays": team_available_days})
-    return jsonify({"message": "Availability updated successfully"}), 200
+        if day not in team_availability:
+            team_availability[day] = []
+        if team_id not in team_availability[day]:
+            team_availability[day].append(team_id)
+
+    schedule_ref.document(selected_doc.id).update({"teamAvailableDays": team_availability})
+    logging.info(f"After update, teamAvailableDays: {team_availability}")
+    return jsonify({"message": "Availability submitted"}), 200
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5003, debug=True)
+    print("HELLO FROM schedule_service.py - LOADING ROUTES...")
+    with app.test_request_context():
+        for rule in app.url_map.iter_rules():
+            print(rule.endpoint, "->", rule)
+    app.run(port=5005, debug=True)
