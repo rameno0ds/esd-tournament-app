@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Initialize Firebase
-cred = credentials.Certificate("../../serviceAccountKey.json")
+cred = credentials.Certificate("/app/serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -97,4 +97,4 @@ def update_team_stats(tournament_id, team_a, team_b, result):
     tournament_doc.update({"teams": teams})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5004, debug=True)

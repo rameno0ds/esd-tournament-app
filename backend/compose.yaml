@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  tournament-service:
+    build:
+      context: ./services/tournament-service  # Path to your tournament service folder
+      dockerfile: tournament_service.dockerfile
+    ports:
+      - "5002:5002"  
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
+
+  teams-service:
+    build:
+      context: ./services/teams-service  # Path to your teams service folder
+      dockerfile: teams_service.dockerfile
+    ports:
+      - "5003:5003" 
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
+
+  match-service:
+    build:
+      context: ./services/match-service  # Path to your match service folder
+      dockerfile: match_service.dockerfile
+    ports:
+      - "5004:5004"  
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
+  
+
+  player-service:
+    build:
+      context: ./services/player-service  # Path to your player service folder
+      dockerfile: player_service.dockerfile
+    ports:
+      - "5001:5001" 
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
+    
+
+  schedule-service:
+    build:
+      context: ./services/schedule-service  # Path to your schedule service folder
+      dockerfile: schedule_service.dockerfile
+    ports:
+      - "5005:5005"  
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
+    

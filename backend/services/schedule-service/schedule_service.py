@@ -11,7 +11,7 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 logging.basicConfig(level=logging.INFO)
 
 # Initialize Firebase – update the path accordingly
-cred = credentials.Certificate("../../serviceAccountKey.json")
+cred = credentials.Certificate("/app/serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -105,4 +105,4 @@ if __name__ == "__main__":
     with app.test_request_context():
         for rule in app.url_map.iter_rules():
             print(rule.endpoint, "->", rule)
-    app.run(port=5005, debug=True)
+    app.run(host="0.0.0.0", port=5005, debug=True)

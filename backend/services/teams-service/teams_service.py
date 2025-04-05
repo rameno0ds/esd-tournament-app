@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"])
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("../../serviceAccountKey.json")  # Ensure the correct path
+cred = credentials.Certificate("/app/serviceAccountKey.json")  # Ensure the correct path
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -153,4 +153,4 @@ def join_team(team_id):
 
 # Run Flask App
 if __name__ == "__main__":
-    app.run(debug=True, port=5003)
+    app.run(host="0.0.0.0", debug=True, port=5003)
