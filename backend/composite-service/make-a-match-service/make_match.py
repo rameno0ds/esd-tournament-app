@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import requests
 from collections import defaultdict
 import random
 
 app = Flask(__name__)
+CORS(app)
 
 SCHEDULE_SERVICE_URL = "http://localhost:5005"
 TOURNAMENT_SERVICE_URL = "http://localhost:5002"

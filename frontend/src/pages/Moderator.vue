@@ -58,6 +58,7 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { getAuth } from 'firebase/auth'
 
+
 // Reactive variables
 const ongoingTournaments = ref([])  // Array of tournaments
 const loading = ref(true)
@@ -128,7 +129,7 @@ async function createMatches(tournamentId, roundNumber) {
     // const response = await axios.post(`http://localhost:5003/schedule/${tournamentId}/round/${roundNumber}/create_matches`)
 
     // Option B: Call the composite "Make a Match" service:
-    const response = await axios.post('http://localhost:5006/make_matches', {
+    const response = await axios.post('http://localhost:5007/make-match', {
       tournamentId,
       roundNumber
     })
