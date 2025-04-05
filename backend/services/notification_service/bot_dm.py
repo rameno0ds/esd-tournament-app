@@ -53,18 +53,17 @@ async def send_private_message_by_username(username, message):
 
 # Scenario 1: Team Assignment - player (dm)
 @client.event
-async def on_ready(): #--> need to change function
+async def team_assignment(username, teamId): 
     print(f'Logged in as {client.user}')
-    username = "sadhana_123_smu"  # Replace with your actual Discord username - need to fetch from player microservice
-    message = 'Hello {{username}}, you have joined {{teamId}}.'
+    message = f'Hello {{{username}}}, you have joined {{{teamId}}}.'
     await send_private_message_by_username(username, message)
 
-# Scenario 3: Dispute Resolution - moderator (dm)
-@client.event
-async def on_ready(): #--> need to change function
-    print(f'Logged in as {client.user}')
-    username = "sadhana_123_smu"  # Replace with your actual Discord username - need to fetch from moderator microservice
-    message = 'Hello {{username}}, you have a new {{disputeId}} to review.'
-    await send_private_message_by_username(username, message)
+# # Scenario 3: Dispute Resolution - moderator (dm)
+# @client.event
+# async def on_ready(): #--> need to change function
+#     print(f'Logged in as {client.user}')
+#     username = "sadhana_123_smu"  # Replace with your actual Discord username - need to fetch from moderator microservice
+#     message = f'Hello {{username}}, you have a new {{disputeId}} to review.'
+#     await send_private_message_by_username(username, message)
 
 client.run(TOKEN)  

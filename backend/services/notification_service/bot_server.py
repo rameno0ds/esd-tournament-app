@@ -21,11 +21,11 @@ async def on_ready():
     channel_id = int(os.getenv('CHANNEL_ID'))  # Channel ID is stored in .env
     channel = client.get_channel(channel_id)
     if channel:
-        message = 'This is the upcoming schedule: {schedule}.'
+        message = f'This is the upcoming schedule: {{schedule}}.'
         await channel.send(message)
 
     # Send a message to the channel in Scenario 3: Dispute resolution
-    message = "Results for dispute for {matchId} is {status}."
+    message = f"Results for dispute for {{matchId}} is {{status}}."
     if channel:
         await channel.send(message)
 
