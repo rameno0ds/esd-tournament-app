@@ -10,7 +10,6 @@ import sys
 import os
 # 👇 Add the root project folder to Python's import path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
-from services.notification_service.bot_dm import team_assignment
 
 
 app = Flask(__name__)
