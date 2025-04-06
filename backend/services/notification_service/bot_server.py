@@ -13,7 +13,6 @@ intents.guilds = True
 client = discord.Client(intents=intents)
 
 # Secnario 2: Match making
-@client.event
 async def match_making():
     print(f'Logged in as {client.user}')
     channel_id = int(os.getenv('CHANNEL_ID'))  # Channel ID is stored in .env
@@ -24,7 +23,6 @@ async def match_making():
         await channel.send(message)
 
 #scenario 3: dispute resolution
-@client.event
 async def resolution_result():
     print(f'Logged in as {client.user}')
     channel_id = int(os.getenv('CHANNEL_ID'))  # Channel ID is stored in .env
