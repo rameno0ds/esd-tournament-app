@@ -37,7 +37,14 @@ def create_schedule():
             return jsonify({"error": "Schedule for this tournament and round already exists"}), 400
 
     schedule_doc = {
-        "tournament": { tournament_id: tournament_name },
+        # "tournament": { tournament_id: tournament_name },
+
+        "tournament": {
+        "tournamentId": tournament_id,
+        "name": tournament_name
+        },
+
+
         "roundNumber": round_number,
         "dateTime": data.get("dateTime", ""),
         "teamAvailableDays": {}

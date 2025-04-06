@@ -5,15 +5,17 @@ import logging
 from collections import defaultdict
 import random
 
+
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*", supports_credentials=True)
+
 
 logging.basicConfig(level=logging.DEBUG)
 
 
 SCHEDULE_SERVICE_URL = "http://localhost:5005"
 TOURNAMENT_SERVICE_URL = "http://localhost:5002"
-MATCH_SERVICE_URL = "http://localhost:5003"
+MATCH_SERVICE_URL = "http://localhost:5004"
 
 # Helper: Sort teams by wins then ELO
 def sort_teams(teams):
@@ -69,116 +71,115 @@ def create_match_pairs(teams, availability):
 
     return pairs
 
-@app.route("/make-match", methods=["POST"])
+@app.route("/make-match", methods=["POST", "OPTIONS"])
 def make_match():
-    data = request.json
-    tournament_id = data.get("tournamentId")
-    # round_number = data.get("roundNumber")
+    if request.method == "OPTIONS":
+        return jsonify({}), 200  # 👈 handles preflight CORS requests
+
     try:
-        round_number = int(data.get("roundNumber"))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid roundNumber"}), 400
+        print("📩 Received data:", request.json)
+        data = request.json
 
-    if not tournament_id or round_number is None:
-        return jsonify({"error": "Missing tournamentId or roundNumber"}), 400
-
-    # 1. Get availability from schedule service
-    # schedule_res = requests.get(f"{SCHEDULE_SERVICE_URL}/schedule/{tournament_id}/{round_number}")
-    # if schedule_res.status_code != 200:
-    #     return jsonify({"error": "Failed to fetch schedule"}), 500
-    # availability = schedule_res.json().get("teamAvailableDays", {})
-    # Retrieve schedule document from the schedule service.
-    schedule_url = f"{SCHEDULE_SERVICE_URL}/schedule/by-tournament/{tournament_id}"
-    try:
-        schedule_resp = requests.get(schedule_url)
-        if schedule_resp.status_code != 200:
-            return jsonify({"error": f"Failed to retrieve schedule: {schedule_resp.text}"}), schedule_resp.status_code
-        all_schedules = schedule_resp.json()
-    except Exception as e:
-        logging.error(f"Error calling schedule service: {e}")
-        return jsonify({"error": "Schedule service error"}), 500
-
-    # Filter for the schedule doc matching the specified round and tournament.
-    # schedule_doc = None
-    # for s in all_schedules:
-    #     logging.debug(f"Checking schedule: {s}")
-
-    #     try:
-    #         s_round = int(s.get("roundNumber"))  # Ensure s.get("roundNumber") is an int
-    #     except (TypeError, ValueError):
-    #         continue  # Skip malformed entries
-
-    #     if s.get("roundNumber") == round_number and s.get("tournament") and tournament_id in s["tournament"]:
-    #         schedule_doc = s
-    #         break
-    schedule_doc = None
-    for s in all_schedules:
-        logging.debug(f"Checking schedule: {s}")
-
-        # Safely extract and convert roundNumber
+        tournament_id = data.get("tournamentId")
         try:
-            s_round = int(s.get("roundNumber"))
+            round_number = int(data.get("roundNumber"))
         except (TypeError, ValueError):
-            continue
+            return jsonify({"error": "Invalid roundNumber"}), 400
 
-        # Extract tournament info
-        s_tournament = s.get("tournament",{})
-        s_tournament_id = s_tournament.get("tournamentId")
+        if not tournament_id or round_number is None:
+            return jsonify({"error": "Missing tournamentId or roundNumber"}), 400
 
-        logging.debug(f"Checking: roundNumber={s_round}, tournamentId={s_tournament_id}")
+        # 1. Get availability from schedule service
+        schedule_url = f"{SCHEDULE_SERVICE_URL}/schedule/by-tournament/{tournament_id}"
+        try:
+            schedule_resp = requests.get(schedule_url)
+            if schedule_resp.status_code != 200:
+                return jsonify({"error": f"Failed to retrieve schedule: {schedule_resp.text}"}), schedule_resp.status_code
+            all_schedules = schedule_resp.json()
+        except Exception as e:
+            logging.error(f"Error calling schedule service: {e}")
+            return jsonify({"error": "Schedule service error"}), 500
 
-        # if not s_tournament:
-        #     continue
+        # 2. Find matching schedule doc
+        schedule_doc = None
+        for s in all_schedules:
+            logging.debug(f"Checking schedule: {s}")
+            try:
+                s_round = int(s.get("roundNumber"))
+            except (TypeError, ValueError):
+                continue
+            s_tournament = s.get("tournament", {})
+            s_tournament_id = s_tournament.get("tournamentId")
 
-        # Determine whether tournament_id matches
-        # if isinstance(s_tournament, str):
-        #     match = tournament_id == s_tournament
-        # elif isinstance(s_tournament, dict):
-        #     match = tournament_id == s_tournament.get("id")
-        # else:
-        #     match = False
+            if s_round == round_number and s_tournament_id == tournament_id:
+                schedule_doc = s
+                logging.debug(f"✅ Found matching schedule: {schedule_doc}")
+                break
 
-        # logging.debug(f"Comparing: round {s_round} == {round_number}, tournament match: {match}")
+        if not schedule_doc:
+            return jsonify({"error": "No schedule found for that round"}), 404
 
-        if s_round == round_number and s_tournament_id == tournament_id:
-            schedule_doc = s
-            logging.debug(f"Found matching schedule: {schedule_doc}")
-            # You can remove this break if multiple matches should be allowed
-    if not schedule_doc:
-        return jsonify({"error": "No schedule found for that round"}), 404
+        availability = schedule_doc.get("teamAvailableDays", {})
 
-    availability = schedule_doc.get("teamAvailableDays", {})
+        # 3. Get teams and stats from tournament service
+        tournament_res = requests.get(f"{TOURNAMENT_SERVICE_URL}/tournament/{tournament_id}")
+        if tournament_res.status_code != 200:
+            return jsonify({"error": "Failed to fetch tournament"}), 500
+        tournament_data = tournament_res.json()
+        teams = tournament_data.get("teams", [])
 
-    # 2. Get teams and stats from tournament service
-    tournament_res = requests.get(f"{TOURNAMENT_SERVICE_URL}/tournament/{tournament_id}")
-    if tournament_res.status_code != 200:
-        return jsonify({"error": "Failed to fetch tournament"}), 500
-    tournament_data = tournament_res.json()
-    teams = tournament_data.get("teams", [])
 
-    if len(teams) % 2 != 0:
-        return jsonify({"error": "Odd number of teams cannot be paired evenly"}), 400
+        # print("🧠 Raw teams list:", teams)
+        # print("✅ Count of teams:", len(teams))
+        # for t in teams:
+        #     print("🔹", t)
 
-    # 3. Form matchups
-    pairs = create_match_pairs(teams, availability)
-    if pairs is None or len(pairs) * 2 != len(teams):
-        return jsonify({"error": "Unable to pair all teams. Check availability."}), 400
 
-    # 4. Post matches to match service
-    for pair in pairs:
-        match_data = {
-            "tournamentId": tournament_id,
-            "roundNumber": round_number,
-            "teamA": pair["teamA"],
-            "teamB": pair["teamB"],
-            "day": pair["day"],
-            "status": "upcoming"
-        }
-        match_res = requests.post(f"{MATCH_SERVICE_URL}/match", json=match_data)
-        if match_res.status_code != 201:
-            return jsonify({"error": f"Failed to create match for {pair['teamA']} vs {pair['teamB']}"}), 500
 
-    return jsonify({"message": f"{len(pairs)} matches created successfully"}), 201
+
+        # if len(teams) % 2 != 0:
+        #     return jsonify({"error": "Odd number of teams cannot be paired evenly"}), 400
+
+        # 4. Form matchups
+        pairs = create_match_pairs(teams, availability)
+
+        print("🧠 Total teams:", len(teams))
+        print("📅 Availability:", availability)
+        print("🔁 Pairs generated:", pairs)
+
+
+        if pairs is None or len(pairs) * 2 != len(teams):
+            return jsonify({"error": "Unable to pair all teams. Check availability."}), 400
+
+        # 5. Post matches to match service
+        for pair in pairs:
+            match_data = {
+                "tournamentId": tournament_id,
+                "teamAId": pair["teamA"],          # ✅ match what match_service expects
+                "teamBId": pair["teamB"],
+                "scheduledTime": pair["day"]       # ✅ reuse "Monday" for now
+            }
+
+            # match_data = {
+            #     "tournamentId": tournament_id,
+            #     "roundNumber": round_number,
+            #     "teamA": pair["teamA"],
+            #     "teamB": pair["teamB"],
+            #     # "day": pair["day"],
+            #     "status": "upcoming",
+            #     "scheduledTime": pair["day"]
+            # }
+            match_res = requests.post(f"{MATCH_SERVICE_URL}/match", json=match_data)
+            if match_res.status_code != 201:
+                return jsonify({"error": f"Failed to create match for {pair['teamA']} vs {pair['teamB']}"}), 500
+
+        return jsonify({"message": f"{len(pairs)} matches created successfully"}), 201
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # 👈 shows detailed error in terminal
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(port=5007, debug=True)
