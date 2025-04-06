@@ -31,6 +31,7 @@ import { getAuth } from 'firebase/auth'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 
+
 const route = useRoute()
 const tournamentId = route.params.id
 const tournamentName = ref('Upcoming Tournament Details')
@@ -86,6 +87,7 @@ const joinTeam = async (teamId) => {
     console.error("Join team error:", err)
   }
 }
+
 
 
 

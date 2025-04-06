@@ -89,3 +89,15 @@ services:
       - "8000:8000"
     env_file:
       - ./services/notification-service/.env
+  
+  handle-dispute-service:
+    build:
+      context: ./composite-service/handle-dispute-service
+      dockerfile: handle_dispute_service.dockerfile
+    ports:
+      - "5008:5008"
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+   
