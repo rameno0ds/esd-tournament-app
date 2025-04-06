@@ -26,9 +26,16 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 
-// In a real app, you might get the playerId from auth or store
-const playerId = "players/playerId"
+const auth = getAuth()
+const currentUser = ref(null)
+
+// Listen for authentication state changes
+onAuthStateChanged(auth, (user) => {
+  currentUser.value = user
+  console.log("Current user updated:", user)
+})
 
 const matchId = ref("")
 const teamId = ref("")
@@ -42,7 +49,7 @@ async function submitDispute() {
       matchId: matchId.value,
       status: "pending",
       teamId: teamId.value,
-      raisedBy: playerId,
+      raisedBy: currentUser.value.uid,
       reason: reason.value,
       evidenceUrl: evidenceUrl.value
     }

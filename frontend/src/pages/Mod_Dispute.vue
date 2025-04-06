@@ -5,13 +5,13 @@
             <button @click="fetchPendingDisputes">Refresh Pending Disputes</button>
         </div>
         <div v-if="disputes.length" class="disputes-list">
-            <div v-for="dispute in disputes" :key="dispute.disputeId" class="dispute-card">
-                <h3>Dispute ID: {{ dispute.disputeId }}</h3>
-                <p>Match ID: {{ dispute.matchId }}</p>
+            <div v-for="dispute in disputes" :key="dispute.matchId" class="dispute-card">
+                
+                <h3>Match ID: {{ dispute.matchId }}</h3>
                 <p>Raised By: {{ dispute.raisedBy }}</p>
                 <p>Reason: {{ dispute.reason }}</p>
                 <p>Evidence: <a :href="dispute.evidenceUrl" target="_blank">{{ dispute.evidenceUrl }}</a></p>
-                <div class="resolution-section" v-if="dispute.status === 'pending'">
+                <div class="resolution-section" v-if="dispute.status === 'Pending'">
                     <label>Resolution Message:</label>
                     <input v-model="dispute.resolution" placeholder="Enter resolution" />
                     <button @click="resolveDispute(dispute, 'resolved')">Resolve</button>
@@ -32,13 +32,14 @@
   
   // In a real app, you might get moderatorId from auth or store
   const moderatorId = "mods/modId"
-  
+  const modAction = ref([])
   const disputes = ref([])
   
   async function fetchPendingDisputes() {
     try {
-      const response = await axios.get("http://localhost:5008/disputes?status=pending")
-      disputes.value = response.data
+      const response = await axios.get("https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes?status=pending")
+       disputes.value = (response.data.Disputes || []).map(d => ({ ...d, resolution: "" }))
+
     } catch (error) {
       console.error("Error fetching disputes:", error)
     }
@@ -47,11 +48,11 @@
   async function resolveDispute(dispute, action) {
     try {
       const payload = {
+        matchId: dispute.matchId,
         status: action,               // "resolved" or "rejected"
-        resolution: dispute.resolution || "",
-        moderatorId
+        // resolution: dispute.resolution || "",
       }
-      await axios.put(`http://localhost:5008/dispute/${dispute.disputeId}`, payload)
+      await axios.put("https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes/", payload)
       // Refresh the list or update local state
       fetchPendingDisputes()
     } catch (error) {
