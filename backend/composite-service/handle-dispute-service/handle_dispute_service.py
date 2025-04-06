@@ -20,10 +20,21 @@ def dispute_new():
         if missing_fields:
             return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
 
+        
+        # Note: Use the Docker Compose service name for bot_api if running in the same network.
+        notify_url = "http://notification-service:8000/notify_moderator"  # Adjust the port if needed
+        notify_payload = {
+            "matchId": payload.get("matchId"),
+            "raisedBy": payload.get("raisedBy")
+        }
+        notify_res = requests.post(notify_url, json=notify_payload)
+        if notify_res.status_code != 200:
+            return jsonify({"error": "Failed to notify moderator"}), 500
 
         return jsonify({
             "message": "Composite dispute processed successfully.",
-            "receivedPayload": payload
+            "receivedPayload": payload,
+            "moderatorNotification": notify_res.json()
         }), 200
 
     except Exception as e:

@@ -43,3 +43,9 @@ async def team_assignment(player_name, team_id):
     message = f"Hello {player_name}, you have joined team {team_id}."
     print(message)
     await send_private_message_by_username(username, message)
+
+async def new_dispute(match_id, raised_by):
+    username = "bossman"
+    message = f"New dispute raised by {raised_by} for match {match_id}"
+    print(message)
+    await send_private_message_by_username(username, message)
