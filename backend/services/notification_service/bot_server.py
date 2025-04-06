@@ -12,21 +12,25 @@ intents.guilds = True
 
 client = discord.Client(intents=intents)
 
-# When the bot is ready
-@client.event
-async def on_ready():
+# Secnario 2: Match making
+async def match_making():
     print(f'Logged in as {client.user}')
-    
-    # Send a message to the channel in Scenario 2: Match making
     channel_id = int(os.getenv('CHANNEL_ID'))  # Channel ID is stored in .env
     channel = client.get_channel(channel_id)
+    # Send a message to the channel in Scenario 2: Match making
     if channel:
-        message = f'This is the upcoming schedule: {{schedule}}.'
+        message = f"This is the upcoming schedule: {{schedule}}."
         await channel.send(message)
 
+#scenario 3: dispute resolution
+async def resolution_result():
+    print(f'Logged in as {client.user}')
+    channel_id = int(os.getenv('CHANNEL_ID'))  # Channel ID is stored in .env
+    channel = client.get_channel(channel_id)
     # Send a message to the channel in Scenario 3: Dispute resolution
-    message = f"Results for dispute for {{matchId}} is {{status}}."
+    
     if channel:
+        message = f"Results for dispute for {{matchId}} is {{status}}."
         await channel.send(message)
 
 # Run the bot with the token from .env

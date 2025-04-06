@@ -1,12 +1,30 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import pika
+import json
+from datetime import datetime
 
 
 app = Flask(__name__)
 
 CORS(app, resources={r"/composite/*": {"origins": "*"}}, supports_credentials=True)
 
+def send_to_queue(queue_name, message):
+    try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
+        channel = connection.channel()
+        channel.queue_declare(queue=queue_name, durable=True)
+        channel.basic_publish(
+            exchange='',
+            routing_key=queue_name,
+            body=json.dumps(message),
+            properties=pika.BasicProperties(delivery_mode=2)
+        )
+        print("✅ Message sent to RabbitMQ.")
+        connection.close()
+    except Exception as e:
+        print("❌ Failed to send message to RabbitMQ:", str(e))
 
 
 
@@ -18,7 +36,7 @@ def check_if_already_in_team():
         if not tournament_id or not auth_header:
             return jsonify({ "error": "Missing tournamentId or auth header" }), 400
 
-        res = requests.get(f"http://localhost:5001/player/my_teams?tournamentId={tournament_id}",
+        res = requests.get(f"http://player-service:5001/player/my_teams?tournamentId={tournament_id}",
                            headers={"Authorization": auth_header})
 
         if res.status_code != 200:
@@ -32,7 +50,7 @@ def check_if_already_in_team():
 def get_tournament_details_with_teams(tournament_id):
     try:
         # 1. Get tournament details from tournament service
-        tourney_res = requests.get(f"http://localhost:5002/tournament/{tournament_id}")
+        tourney_res = requests.get(f"http://tournament-service:5002/tournament/{tournament_id}")
         if tourney_res.status_code != 200:
             return jsonify({"error": "Tournament not found"}), 404
         tournament_data = tourney_res.json()
@@ -45,7 +63,7 @@ def get_tournament_details_with_teams(tournament_id):
             team_id = team.get("teamId")
             if not team_id:
                 continue
-            team_detail_res = requests.get(f"http://localhost:5003/team/{team_id}")
+            team_detail_res = requests.get(f"http://teams-service:5003/team/{team_id}")
             if team_detail_res.status_code == 200:
                 team_info = team_detail_res.json()
                 enriched_teams.append({
@@ -78,7 +96,7 @@ def join_team():
             return jsonify({"error": "Missing fields"}), 400
 
         # Get player profile from player service
-        player_res = requests.get("http://localhost:5001/player/profile", headers={
+        player_res = requests.get("http://player-service:5001/player/profile", headers={
             "Authorization": auth_header
         })
         if player_res.status_code != 200:
@@ -91,7 +109,7 @@ def join_team():
 
         # Join the team
         team_join_res = requests.post(
-            f"http://localhost:5003/team/{team_id}/join",
+            f"http://teams-service:5003/team/{team_id}/join",
             json={ "name": player_name },
             headers={ "Authorization": auth_header }
         )
@@ -100,13 +118,23 @@ def join_team():
 
         # Update tournament record
         tournament_res = requests.put(
-            f"http://localhost:5002/tournament/{tournament_id}/add_player",
+            f"http://tournament-service:5002/tournament/{tournament_id}/add_player",
             json={ "player_id": player_id }
         )
         if tournament_res.status_code != 200:
             return jsonify({ "error": "Failed to update tournament" }), 400
 
+        # Send event to RabbitMQ after everything succeeds
+        send_to_queue("player_events", {
+            "event": "player_joined",
+            "player_id": player_id,
+            "team_id": team_id,
+            "tournament_id": tournament_id,
+            "timestamp": datetime.now().isoformat()
+        })
+
         return jsonify({ "message": "Joined successfully!" }), 200
+
 
     except Exception as e:
         return jsonify({ "error": str(e) }), 500
@@ -115,4 +143,5 @@ def join_team():
 
 
 if __name__ == "__main__":
-    app.run(port=5006, debug=True)
+    app.run(host='0.0.0.0', port=5006, debug=True)
+

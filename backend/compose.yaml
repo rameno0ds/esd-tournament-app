@@ -57,4 +57,27 @@ services:
       - FLASK_ENV=development
     volumes:
       - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
-    
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  composite_service:
+    build:
+      context: ./composite-service/join-team-service
+      dockerfile: composite_service.dockerfile    
+    ports:
+      - "5006:5006"
+    depends_on:
+      - rabbitmq
+
+  join_logger:
+    build:
+      context: ./join-logger
+      dockerfile: join_logger.dockerfile
+    depends_on:
+      - rabbitmq
+
