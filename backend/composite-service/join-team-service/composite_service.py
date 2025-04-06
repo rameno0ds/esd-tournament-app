@@ -5,6 +5,13 @@ import pika
 import json
 from datetime import datetime
 
+import asyncio
+import sys
+import os
+# 👇 Add the root project folder to Python's import path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
+from services.notification_service.bot_dm import team_assignment
+
 
 app = Flask(__name__)
 
@@ -106,7 +113,6 @@ def join_team():
         player_id = player_data.get("userId")  
         player_name = player_data.get("username")
 
-
         # Join the team
         team_join_res = requests.post(
             f"http://teams-service:5003/team/{team_id}/join",
@@ -133,11 +139,24 @@ def join_team():
             "timestamp": datetime.now().isoformat()
         })
 
-        return jsonify({ "message": "Joined successfully!" }), 200
+        # 🔔 Trigger Discord DM via FastAPI route
+        print("Triggering team_assignment DM via bot_api...")
+        dm_payload = {
+            "player_name": player_name,
+            "team_id": team_id
+        }
+        try:
+            dm_response = requests.post("http://localhost:8000/assign_team", json=dm_payload)
+            print("DM response:", dm_response.json())
+        except Exception as e:
+            print("⚠️ Failed to trigger DM:", str(e))
 
+        # ✅ FINAL RETURN RESPONSE to frontend
+        return jsonify({ "message": "Joined successfully!" }), 200
 
     except Exception as e:
         return jsonify({ "error": str(e) }), 500
+
 
 
 
