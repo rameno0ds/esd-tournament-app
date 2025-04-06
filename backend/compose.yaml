@@ -80,4 +80,12 @@ services:
       dockerfile: join_logger.dockerfile
     depends_on:
       - rabbitmq
-
+    
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./services/notification-service/.env

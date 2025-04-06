@@ -1,0 +1,29 @@
+# Use an official Node.js image that includes a slim Linux distribution
+FROM node:18-slim
+
+# Install Python3, pip, and necessary build tools/libraries
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip build-essential python3-dev libffi-dev libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy package.json and package-lock.json first to leverage Docker cache
+COPY package.json package-lock.json ./
+
+# Install Node dependencies
+RUN npm install
+
+# Copy the rest of your application code into the container
+COPY . .
+
+# Upgrade pip and install Python dependencies using --break-system-packages flag
+RUN pip3 install --upgrade pip --break-system-packages && \
+    pip3 install --break-system-packages fastapi uvicorn python-dotenv discord.py requests
+
+# Expose port 8000 (used by FastAPI)
+EXPOSE 8000
+
+# Start the application
+CMD ["python3", "bot_core.py"]
