@@ -1,11 +1,15 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import logging
 from collections import defaultdict
 import random
 
 app = Flask(__name__)
 CORS(app)
+
+logging.basicConfig(level=logging.DEBUG)
+
 
 SCHEDULE_SERVICE_URL = "http://localhost:5005"
 TOURNAMENT_SERVICE_URL = "http://localhost:5002"
@@ -69,16 +73,77 @@ def create_match_pairs(teams, availability):
 def make_match():
     data = request.json
     tournament_id = data.get("tournamentId")
-    round_number = data.get("roundNumber")
+    # round_number = data.get("roundNumber")
+    try:
+        round_number = int(data.get("roundNumber"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid roundNumber"}), 400
 
     if not tournament_id or round_number is None:
         return jsonify({"error": "Missing tournamentId or roundNumber"}), 400
 
     # 1. Get availability from schedule service
-    schedule_res = requests.get(f"{SCHEDULE_SERVICE_URL}/schedule/{tournament_id}/{round_number}")
-    if schedule_res.status_code != 200:
-        return jsonify({"error": "Failed to fetch schedule"}), 500
-    availability = schedule_res.json().get("teamAvailableDays", {})
+    # schedule_res = requests.get(f"{SCHEDULE_SERVICE_URL}/schedule/{tournament_id}/{round_number}")
+    # if schedule_res.status_code != 200:
+    #     return jsonify({"error": "Failed to fetch schedule"}), 500
+    # availability = schedule_res.json().get("teamAvailableDays", {})
+    # Retrieve schedule document from the schedule service.
+    schedule_url = f"{SCHEDULE_SERVICE_URL}/schedule/{tournament_id}"
+    try:
+        schedule_resp = requests.get(schedule_url)
+        if schedule_resp.status_code != 200:
+            return jsonify({"error": f"Failed to retrieve schedule: {schedule_resp.text}"}), schedule_resp.status_code
+        all_schedules = schedule_resp.json()
+    except Exception as e:
+        logging.error(f"Error calling schedule service: {e}")
+        return jsonify({"error": "Schedule service error"}), 500
+
+    # Filter for the schedule doc matching the specified round and tournament.
+    # schedule_doc = None
+    # for s in all_schedules:
+    #     logging.debug(f"Checking schedule: {s}")
+
+    #     try:
+    #         s_round = int(s.get("roundNumber"))  # Ensure s.get("roundNumber") is an int
+    #     except (TypeError, ValueError):
+    #         continue  # Skip malformed entries
+
+    #     if s.get("roundNumber") == round_number and s.get("tournament") and tournament_id in s["tournament"]:
+    #         schedule_doc = s
+    #         break
+    schedule_doc = None
+    for s in all_schedules:
+        logging.debug(f"Checking schedule: {s}")
+
+        # Safely extract and convert roundNumber
+        try:
+            s_round = int(s.get("roundNumber"))
+        except (TypeError, ValueError):
+            continue
+
+        # Extract tournament info
+        s_tournament = s.get("tournament")
+        if not s_tournament:
+            continue
+
+        # Determine whether tournament_id matches
+        if isinstance(s_tournament, str):
+            match = tournament_id == s_tournament
+        elif isinstance(s_tournament, dict):
+            match = tournament_id == s_tournament.get("id")
+        else:
+            match = False
+
+        logging.debug(f"Comparing: round {s_round} == {round_number}, tournament match: {match}")
+
+        if s_round == round_number and match:
+            schedule_doc = s
+            logging.debug(f"Found matching schedule: {schedule_doc}")
+            # You can remove this break if multiple matches should be allowed
+    # if not schedule_doc:
+    #     return jsonify({"error": "No schedule found for that round"}), 404
+
+    team_available_days = schedule_doc.get("teamAvailableDays", {})
 
     # 2. Get teams and stats from tournament service
     tournament_res = requests.get(f"{TOURNAMENT_SERVICE_URL}/tournament/{tournament_id}")
