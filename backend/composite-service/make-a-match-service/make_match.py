@@ -157,7 +157,9 @@ def make_match():
                 "tournamentId": tournament_id,
                 "teamAId": pair["teamA"],          # ✅ match what match_service expects
                 "teamBId": pair["teamB"],
-                "scheduledTime": pair["day"]       # ✅ reuse "Monday" for now
+                "scheduledTime": pair["day"],       # ✅ reuse "Monday" for now
+                "status":"ongoing",
+                "roundNumber":round_number
             }
 
             # match_data = {
