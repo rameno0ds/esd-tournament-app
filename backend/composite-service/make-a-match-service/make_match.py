@@ -88,7 +88,7 @@ def make_match():
     #     return jsonify({"error": "Failed to fetch schedule"}), 500
     # availability = schedule_res.json().get("teamAvailableDays", {})
     # Retrieve schedule document from the schedule service.
-    schedule_url = f"{SCHEDULE_SERVICE_URL}/schedule/{tournament_id}"
+    schedule_url = f"{SCHEDULE_SERVICE_URL}/schedule/by-tournament/{tournament_id}"
     try:
         schedule_resp = requests.get(schedule_url)
         if schedule_resp.status_code != 200:
@@ -122,28 +122,32 @@ def make_match():
             continue
 
         # Extract tournament info
-        s_tournament = s.get("tournament")
-        if not s_tournament:
-            continue
+        s_tournament = s.get("tournament",{})
+        s_tournament_id = s_tournament.get("tournamentId")
+
+        logging.debug(f"Checking: roundNumber={s_round}, tournamentId={s_tournament_id}")
+
+        # if not s_tournament:
+        #     continue
 
         # Determine whether tournament_id matches
-        if isinstance(s_tournament, str):
-            match = tournament_id == s_tournament
-        elif isinstance(s_tournament, dict):
-            match = tournament_id == s_tournament.get("id")
-        else:
-            match = False
+        # if isinstance(s_tournament, str):
+        #     match = tournament_id == s_tournament
+        # elif isinstance(s_tournament, dict):
+        #     match = tournament_id == s_tournament.get("id")
+        # else:
+        #     match = False
 
-        logging.debug(f"Comparing: round {s_round} == {round_number}, tournament match: {match}")
+        # logging.debug(f"Comparing: round {s_round} == {round_number}, tournament match: {match}")
 
-        if s_round == round_number and match:
+        if s_round == round_number and s_tournament_id == tournament_id:
             schedule_doc = s
             logging.debug(f"Found matching schedule: {schedule_doc}")
             # You can remove this break if multiple matches should be allowed
-    # if not schedule_doc:
-    #     return jsonify({"error": "No schedule found for that round"}), 404
+    if not schedule_doc:
+        return jsonify({"error": "No schedule found for that round"}), 404
 
-    team_available_days = schedule_doc.get("teamAvailableDays", {})
+    availability = schedule_doc.get("teamAvailableDays", {})
 
     # 2. Get teams and stats from tournament service
     tournament_res = requests.get(f"{TOURNAMENT_SERVICE_URL}/tournament/{tournament_id}")

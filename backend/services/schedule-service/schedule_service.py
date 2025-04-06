@@ -47,19 +47,47 @@ def create_schedule():
     return jsonify({"message": "Schedule created successfully"}), 201
 
 # --- Get Schedules for a Tournament ---
-@app.route("/schedule/<tournament_id>", methods=["GET", "OPTIONS"])
-def get_schedules(tournament_id):
-    if request.method == "OPTIONS":
-        return jsonify({}), 200
+# @app.route("/schedule/<tournament_id>", methods=["GET", "OPTIONS"])
+# def get_schedules(tournament_id):
+#     if request.method == "OPTIONS":
+#         return jsonify({}), 200
 
-    schedules = []
-    for doc in schedule_ref.stream():
-        d = doc.to_dict()
-        if d.get("tournament") and tournament_id in d["tournament"]:
-            schedules.append({"id": doc.id, **d})
-    if not schedules:
-        return jsonify({"error": "No schedules found for this tournament"}), 404
-    return jsonify(schedules), 200
+#     schedules = []
+#     for doc in schedule_ref.stream():
+#         d = doc.to_dict()
+#         if d.get("tournament") and tournament_id in d["tournament"]:
+#             schedules.append({"id": doc.id, **d})
+#     if not schedules:
+#         return jsonify({"error": "No schedules found for this tournament"}), 404
+#     return jsonify(schedules), 200
+
+@app.route("/schedule/by-tournament/<tournament_id>", methods=["GET"])
+def get_schedules_by_tournament_id(tournament_id):
+    try:
+        schedules_ref = db.collection("schedules").stream()
+        matching = []
+
+        for doc in schedules_ref:
+            schedule = doc.to_dict()
+            schedule["id"] = doc.id  # include document ID
+            logging.debug(f"Checking schedule: {schedule}")
+
+            # Updated structure with tournamentId inside a field
+            tournament_info = schedule.get("tournament", {})
+            found_id = tournament_info.get("tournamentId")
+
+            logging.debug(f"Comparing against: {found_id}")
+            if found_id == tournament_id:
+                matching.append(schedule)
+
+        if not matching:
+            return jsonify({"error": "No schedules found for this tournament"}), 404
+
+        return jsonify(matching), 200
+
+    except Exception as e:
+        logging.error(f"Error fetching schedule: {e}")
+        return jsonify({"error": "Internal error"}), 500
 
 # --- Submit Availability ---
 @app.route("/schedule/<tournament_id>/availability", methods=["POST", "OPTIONS"])
