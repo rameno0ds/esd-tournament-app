@@ -6,6 +6,8 @@ app = Flask(__name__)
 # Allow all origins for /dispute/* endpoints
 CORS(app, resources={r"/dispute/*": {"origins": "*"}}, supports_credentials=True)
 
+PLAYER_SERVICE_URL = "http://player-service:5001/player"
+
 @app.route("/dispute/new", methods=["POST"])
 def dispute_new():
     try:
@@ -48,29 +50,68 @@ def dispute_new():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# @app.route("/dispute/resolve", methods=["POST"])
-# def dispute_resolve():
-#     try:
-#         # Retrieve JSON payload from the request
-#         payload = request.get_json()
-#         if not payload:
-#             return jsonify({"error": "No payload provided"}), 400
+@app.route("/dispute/resolve", methods=["POST"])
+def dispute_resolve():
+    try:
+        # Retrieve JSON payload from the request
+        payload = request.get_json()
+        if not payload:
+            return jsonify({"error": "No payload provided"}), 400
         
-#         # Validate required fields
-#         required_fields = ["matchId", "status", "resolvedBy"]
-#         missing_fields = [field for field in required_fields if field not in payload]
-#         if missing_fields:
-#             return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
-
-#         # Here you can add logic to resolve the dispute, e.g., updating a database or notifying other services.
+        match_id = payload["matchId"]
+        status = payload["status"]  # "resolved" or "rejected"
+        result = payload["result"]
+        score = payload["score"]   # { teamA, teamB }
+        raised_by = payload["raisedBy"]
         
-#         return jsonify({
-#             "message": "Dispute resolved successfully.",
-#             "receivedPayload": payload
-#         }), 200
+        # 1) Outsystems DB update
+        outsystems_url = "https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes"
+        outsystems_payload = {
+            "matchId": match_id,
+            "status": status,
+        }
+        outsystems_res = requests.put(outsystems_url, json=outsystems_payload)
+        if outsystems_res.status_code != 200:
+            return jsonify({"error": "Failed to update dispute in OutSystems"}), 500
 
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+        # 2) Notify the player via Discord
+        # 2a) Need to fetch player name from player service
+        
+        player_res = requests.get(f"{PLAYER_SERVICE_URL}/{raised_by}")
+        if player_res.status_code != 200:
+            return jsonify({"error": "Failed to update match"}), 500
+        player_data = player_res.json()
+        player_name = player_data.get("username")
+
+        # 2b) Notify the player
+        player_notify_url = "http://notification-service:8000/dispute_outcome"
+        player_notify_payload = {
+            "player_name": player_name,
+            "match_id": match_id,
+            "result": result
+        }
+        player_notify_res = requests.post(player_notify_url, json=player_notify_payload)
+        if player_notify_res.status_code != 200:
+            return jsonify({"error": "Failed to notify player"}), 500
+        
+        # 3) Update match service with the result
+        finalize_match_service_url = "http://finalize-match-outcome-service:5009/finalize-outcome"
+        finalize_match_payload = {
+            "matchId": match_id,
+            "result": result,
+            "score": score
+        }
+        finalize_match_res = requests.post(finalize_match_service_url, json=finalize_match_payload)
+        if finalize_match_res.status_code != 200:
+            return jsonify({"error": "Failed to update match service"}), 500
+
+        return jsonify({
+            "message": "Dispute resolved successfully.",
+            "receivedPayload": payload
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     # Listen on all interfaces so Docker can map the port properly

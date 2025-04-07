@@ -13,7 +13,9 @@ TOURNAMENT_SERVICE_URL = "http://tournament-service:5002"
 
 @app.route("/finalize-outcome", methods=["POST"])
 def finalize_outcome():
-    data = request.json
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No payload provided"}), 400
     match_id = data.get("matchId")
     result = data.get("result")  # "teamA won", "teamB won", "draw"
     score = data.get("score", {})

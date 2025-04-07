@@ -11,9 +11,27 @@
                 <p>Raised By: {{ dispute.raisedBy }}</p>
                 <p>Reason: {{ dispute.reason }}</p>
                 <p>Evidence: <a :href="dispute.evidenceUrl" target="_blank">{{ dispute.evidenceUrl }}</a></p>
+                  <!-- Display match details if they exist -->
+                <div v-if="dispute.matchData">
+                  <h3>Match Details</h3>
+                  <p>Status: {{ dispute.matchData.result }}</p>
+                  <p>Score: {{ dispute.matchData.score.teamA }} - {{ dispute.matchData.score.teamB }}</p>
+                  <p>TeamA: {{ dispute.matchData.teamAId }}</p>
+                  <p>TeamB: {{ dispute.matchData.teamBId }}</p>
+                </div>
                 <div class="resolution-section" v-if="dispute.status === 'Pending'">
                     <label>Resolution Message:</label>
                     <input v-model="dispute.resolution" placeholder="Enter resolution" />
+                      <!-- New: Let moderator update match result -->
+                    <label>Result:</label>
+                    <input v-model="dispute.matchData.result" placeholder="e.g., 'TeamA won'" />
+
+                    <!-- New: Let moderator update the team scores -->
+                    <label>Team A Score:</label>
+                    <input type="number" v-model="dispute.matchData.score.teamA" />
+
+                    <label>Team B Score:</label>
+                    <input type="number" v-model="dispute.matchData.score.teamB" />
                     <button @click="resolveDispute(dispute, 'resolved')">Resolve</button>
                     <button @click="resolveDispute(dispute, 'rejected')">Reject</button>
                 </div>
@@ -35,24 +53,74 @@
   const modAction = ref([])
   const disputes = ref([])
   
-  async function fetchPendingDisputes() {
-    try {
-      const response = await axios.get("https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes?status=pending")
-       disputes.value = (response.data.Disputes || []).map(d => ({ ...d, resolution: "" }))
 
+  async function fetchMatchDetails(matchId) {
+    try {
+      // If your match-service runs on port 5004:
+      const response = await axios.get(`http://localhost:5004/match/${matchId}`);
+      return response.data;
     } catch (error) {
-      console.error("Error fetching disputes:", error)
+      // console.error("Error fetching match details:", error);
+      console.error("No match data found for ID:", matchId);
+      return null;
     }
   }
+
+  async function fetchPendingDisputes() {
+  try {
+    // 1. Fetch pending disputes from OutSystems
+    const response = await axios.get(
+      "https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes?status=pending"
+    );
+    let rawDisputes = response.data.Disputes || [];
+
+    // 2. For each dispute, fetch match details in parallel
+    const updatedDisputes = await Promise.all(
+      rawDisputes.map(async (dispute) => {
+        // Create a default matchData object
+        dispute.matchData = {
+          result: "",
+          score: { teamA: 0, teamB: 0 },
+        }
+        if (dispute.matchId) {
+            const matchData = await fetchMatchDetails(dispute.matchId)
+            if (matchData) {
+              // Add match data to the dispute
+              dispute.matchData = matchData
+            }
+            // Ensure matchData has the fields we need
+            if (!dispute.matchData.score) {
+              dispute.matchData.score = { teamA: 0, teamB: 0 }
+            }
+          }
+        return dispute;
+      })
+    );
+
+    // 3. Set the updated disputes array
+    disputes.value = updatedDisputes;
+  } catch (error) {
+    console.error("Error fetching disputes:", error);
+  }
+}
+
   
+
   async function resolveDispute(dispute, action) {
     try {
       const payload = {
         matchId: dispute.matchId,
         status: action,               // "resolved" or "rejected"
-        // resolution: dispute.resolution || "",
+        result: dispute.matchData.result, //to be edited by front-end
+        score: {
+          teamA: dispute.matchData.score.teamA,
+          teamB: dispute.matchData.score.teamB
+        },
+        raisedBy: dispute.raisedBy,  // might need for notifications
       }
-      await axios.put("https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes/", payload)
+      const compositeUrl = "http://localhost:5008/dispute/resolve";
+      const response = await axios.post(compositeUrl, payload)
+      console.log("Dispute resolved:", response.data)
       // Refresh the list or update local state
       fetchPendingDisputes()
     } catch (error) {

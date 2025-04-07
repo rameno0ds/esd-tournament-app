@@ -64,8 +64,8 @@ async def new_dispute(match_id, raised_by):
     await send_private_message_by_username(username, message)
 
 #scenario 3: dispute resolution - notify player of outcome
-async def resolution_result(player_name, match_id, score, result):
+async def resolution_result(player_name, match_id, result):
     username = player_name
-    message = f"The finalised dispute result for {match_id} is {score} and thus, {result}."
+    message = f"The finalised dispute result for {match_id} is {result}."
     print(message)
     await send_private_message_by_username(username, message)
