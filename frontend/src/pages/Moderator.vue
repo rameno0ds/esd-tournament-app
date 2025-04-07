@@ -27,18 +27,24 @@
               <li v-for="week in tourney.weeks" :key="week.number" class="week-item">
                 <strong>Round {{ week.number }}</strong> — Status: {{ week.status }}
 
-                <!-- If completed, show "Match Record" button -->
-                <button v-if="week.status === 'completed'" @click="viewMatchRecord(tourney.id, week.number)">
+                <button
+                  v-if="week.status === 'completed'"
+                  @click="viewMatchRecord(tourney.id, week.number)"
+                >
                   Match Record
                 </button>
 
-                <!-- If upcoming, show "Create Matches" button -->
-                <button v-else-if="week.status === 'upcoming'" @click="createMatches(tourney.id, week.number)">
+                <button
+                  v-else-if="week.status === 'upcoming'"
+                  @click="createMatches(tourney.id, week.number)"
+                >
                   Create Matches
                 </button>
 
-                <!-- If ongoing, you could show "View Matches" or something else -->
-                <button v-else-if="week.status === 'ongoing'" @click="viewMatches(tourney.id, week.number)">
+                <button
+                  v-else-if="week.status === 'ongoing'"
+                  @click="viewMatches(tourney.id, week.number)"
+                >
                   View Matches
                 </button>
               </li>
@@ -58,13 +64,11 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { getAuth } from 'firebase/auth'
 
-
-// Reactive variables
-const ongoingTournaments = ref([])  // Array of tournaments
+const ongoingTournaments = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
 
-// On mount, fetch the ongoing tournaments
+// Fetch tournaments on mount
 onMounted(() => {
   fetchOngoingTournaments()
 })
@@ -80,27 +84,33 @@ async function fetchOngoingTournaments() {
     }
     const idToken = await user.getIdToken()
 
-    // Example: fetch all tournaments with status "ongoing"
     const response = await axios.get('http://localhost:5002/tournaments?status=ongoing', {
       headers: {
         Authorization: `Bearer ${idToken}`
       }
     })
-    // Suppose the response has a structure like:
-    // [
-    //   { id: "BNck5GT9pQx8DVQ9x3sF", name: "MyTournament", status: "ongoing", ... }
-    // ]
-    ongoingTournaments.value = response.data.map(t => ({
-      ...t,
-      showWeeks: false,
-      weeks: [
-        // Example data for demonstration:
-        { number: 1, status: 'completed' },
-        { number: 2, status: 'upcoming' },
-        { number: 3, status: 'ongoing' }
-      ]
-    }))
-    
+
+    ongoingTournaments.value = response.data.map(t => {
+      const curRound = t.curRound ?? 0
+      const totalRounds = 3
+
+      const weeks = Array.from({ length: totalRounds }, (_, i) => {
+        const round = i + 1
+        let status = ''
+        if (round < curRound) status = 'completed'
+        else if (round === curRound) status = 'ongoing'
+        else status = 'upcoming'
+
+        return { number: round, status }
+      })
+
+      return {
+        ...t,
+        curRound,
+        showWeeks: false,
+        weeks
+      }
+    })
   } catch (error) {
     console.error('Error fetching tournaments:', error)
     errorMessage.value = 'Failed to load tournaments.'
@@ -109,7 +119,6 @@ async function fetchOngoingTournaments() {
   }
 }
 
-// Toggle the weeks display for a given tournament
 function toggleWeeks(tournamentId) {
   const tourney = ongoingTournaments.value.find(t => t.id === tournamentId)
   if (tourney) {
@@ -117,35 +126,44 @@ function toggleWeeks(tournamentId) {
   }
 }
 
-// If completed => "Match Record" button
 function viewMatchRecord(tournamentId, weekNumber) {
   alert(`Viewing match record for Tournament ${tournamentId}, Round ${weekNumber}`)
 }
 
-// If upcoming => "Create Matches" button
 async function createMatches(tournamentId, roundNumber) {
   try {
-    // Option A: Directly call the schedule service's create_matches endpoint:
-    // const response = await axios.post(`http://localhost:5003/schedule/${tournamentId}/round/${roundNumber}/create_matches`)
-
-    // Option B: Call the composite "Make a Match" service:
     const response = await axios.post('http://localhost:5007/make-match', {
       tournamentId,
       roundNumber
     })
 
-    console.log('Matches created:', response.data)
     alert(response.data.message)
+    console.log('Matches created:', response.data)
+
+    // Update tournament curRound and regenerate weeks
+    const tourney = ongoingTournaments.value.find(t => t.id === tournamentId)
+    if (tourney) {
+      tourney.curRound = roundNumber
+
+      tourney.weeks = Array.from({ length: 3 }, (_, i) => {
+        const round = i + 1
+        let status = ''
+        if (round < tourney.curRound) status = 'completed'
+        else if (round === tourney.curRound) status = 'ongoing'
+        else status = 'upcoming'
+
+        return { number: round, status }
+      })
+    }
+
   } catch (error) {
     console.error('Error creating matches:', error)
     alert('Failed to create matches. Check console for details.')
   }
 }
 
-// If ongoing => "View Matches" button
 function viewMatches(tournamentId, weekNumber) {
   alert(`Viewing matches for Tournament ${tournamentId}, Round ${weekNumber}`)
-  // e.g., navigate to a page that lists all matches for that round
 }
 </script>
 

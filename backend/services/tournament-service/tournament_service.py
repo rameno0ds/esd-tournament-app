@@ -261,6 +261,21 @@ def update_team_stats(tournament_id):
 
     return jsonify({ "message": "Team stats updated successfully" }), 200
 
+# Update current round of the tournament
+@app.route("/tournament/<tournament_id>/update_round", methods=["PUT"])
+def update_tournament_round(tournament_id):
+    data = request.get_json()
+    cur_round = data.get("curRound")
+
+    if cur_round is None:
+        return jsonify({"error": "Missing curRound"}), 400
+
+    tournament_doc = tournament_ref.document(tournament_id)
+    if not tournament_doc.get().exists:
+        return jsonify({"error": "Tournament not found"}), 404
+
+    tournament_doc.update({ "curRound": cur_round })
+    return jsonify({"message": f"curRound updated to {cur_round}"}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002, debug=True)
