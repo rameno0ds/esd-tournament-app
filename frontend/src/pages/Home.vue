@@ -6,6 +6,8 @@
     <div class="tournament-columns">
       <div class="tournament-section">
         <h2>All Ongoing Tournaments</h2>
+        
+        <button @click="logToken">Log Token</button>
 
 
         <!-- Loader while fetching tournaments -->
@@ -340,6 +342,21 @@ function submitAvailability() {
 function reportMatch() {
   router.push('/dispute')
 }
+
+
+import { getAuth } from "firebase/auth";
+
+function logToken() {
+  const user = getAuth().currentUser;
+  if (user) {
+    user.getIdToken(true).then(token => {
+      console.log("🔥 ID Token:", token);
+    });
+  } else {
+    console.log("❌ No user logged in.");
+  }
+}
+
 </script>
 
 <style scoped>

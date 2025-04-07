@@ -245,5 +245,22 @@ def add_team(tournament_id):
 #     tournament_ref.document(tournament_id).update({"teams": teams})
 #     return jsonify({"message": "Match results updated successfully"}), 200
 
+@app.route("/tournament/<tournament_id>/update_team_stats", methods=["PUT"])
+def update_team_stats(tournament_id):
+    data = request.json
+    updated_teams = data.get("teams", [])
+
+    if not updated_teams:
+        return jsonify({"error": "Missing teams data"}), 400
+
+    tournament_doc = tournament_ref.document(tournament_id)
+    if not tournament_doc.get().exists:
+        return jsonify({"error": "Tournament not found"}), 404
+
+    tournament_doc.update({ "teams": updated_teams })
+
+    return jsonify({ "message": "Team stats updated successfully" }), 200
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002, debug=True)

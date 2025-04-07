@@ -110,4 +110,4 @@ def make_matches():
     return jsonify({"message": f"Matches for round {round_number} created!", "matches": created_matches}), 201
 
 if __name__ == "__main__":
-    app.run(port=5006, debug=True)
+    app.run(port=5007, debug=True)

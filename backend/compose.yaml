@@ -68,7 +68,7 @@ services:
   composite_service:
     build:
       context: ./composite-service/join-team-service
-      dockerfile: composite_service.dockerfile    
+      dockerfile: composite_service.dockerfile 
     ports:
       - "5006:5006"
     depends_on:
@@ -101,3 +101,16 @@ services:
     volumes:
       - ./serviceAccountKey.json:/app/serviceAccountKey.json
    
+
+
+  finalize-match-outcome-service:
+    build:
+      context: ./composite-service/finalize-match-outcome-service
+      dockerfile: finalize_match_outcome_service.dockerfile
+    ports:
+      - "5009:5009"  
+    depends_on:
+      - match-service
+      - tournament-service
+
+

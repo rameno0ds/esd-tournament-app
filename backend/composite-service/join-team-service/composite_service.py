@@ -7,7 +7,6 @@ from datetime import datetime
 
 
 
-
 app = Flask(__name__)
 
 CORS(app, resources={r"/composite/*": {"origins": "*"}}, supports_credentials=True)

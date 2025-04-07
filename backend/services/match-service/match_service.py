@@ -25,6 +25,7 @@ def create_match():
     team_a = data.get("teamAId")
     team_b = data.get("teamBId")
     scheduled_time = data.get("scheduledTime")
+    
 
     if not all([tournament_id, team_a, team_b, scheduled_time]):
         return jsonify({"error": "Missing required fields"}), 400
@@ -67,34 +68,56 @@ def update_match_result(match_id):
     match_doc.update({"result": result, "score": score, "status": "completed"})
 
     # Update team stats
-    update_team_stats(match_data["tournamentId"], match_data["teamAId"], match_data["teamBId"], result)
+    # update_team_stats(match_data["tournamentId"], match_data["teamAId"], match_data["teamBId"], result)
 
     return jsonify({"message": "Match result updated successfully"}), 200
 
 # Helper function to update team stats
 
-def update_team_stats(tournament_id, team_a, team_b, result):
-    tournament_doc = tournament_ref.document(tournament_id)
-    tournament_data = tournament_doc.get().to_dict()
-    if not tournament_data:
-        return
+# def update_team_stats(tournament_id, team_a, team_b, result):
+#     tournament_doc = tournament_ref.document(tournament_id)
+#     tournament_data = tournament_doc.get().to_dict()
+#     if not tournament_data:
+#         return
 
-    teams = tournament_data.get("teams", [])
-    for team in teams:
-        if team["teamId"] == team_a or team["teamId"] == team_b:
-            if result == "teamA won" and team["teamId"] == team_a:
-                team["teamStats"]["wins"] += 1
-                team["teamStats"]["elo"] += 10  # Adjust ELO accordingly
-            elif result == "teamB won" and team["teamId"] == team_b:
-                team["teamStats"]["wins"] += 1
-                team["teamStats"]["elo"] += 10  
-            elif result == "draw":
-                team["teamStats"]["elo"] += 5  
-            else:
-                team["teamStats"]["losses"] += 1
-                team["teamStats"]["elo"] -= 10  
+#     teams = tournament_data.get("teams", [])
+#     for team in teams:
+#         if team["teamId"] == team_a or team["teamId"] == team_b:
+#             if result == "teamA won" and team["teamId"] == team_a:
+#                 team["teamStats"]["wins"] += 1
+#                 team["teamStats"]["elo"] += 10  # Adjust ELO accordingly
+#             elif result == "teamB won" and team["teamId"] == team_b:
+#                 team["teamStats"]["wins"] += 1
+#                 team["teamStats"]["elo"] += 10  
+#             elif result == "draw":
+#                 team["teamStats"]["elo"] += 5  
+#             else:
+#                 team["teamStats"]["losses"] += 1
+#                 team["teamStats"]["elo"] -= 10  
     
-    tournament_doc.update({"teams": teams})
+#     tournament_doc.update({"teams": teams})
+
+@app.route("/match/<match_id>/finalize", methods=["PUT"])
+def finalize_match(match_id):
+    data = request.json
+    result = data.get("result")
+    score = data.get("score")
+
+    if not result or not score:
+        return jsonify({"error": "Missing result or score"}), 400
+
+    match_doc = match_ref.document(match_id)
+    if not match_doc.get().exists:
+        return jsonify({"error": "Match not found"}), 404
+
+    match_doc.update({
+        "result": result,
+        "score": score,
+        "status": "completed"
+    })
+
+    return jsonify({"message": "Match updated successfully"}), 200
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5004, debug=True)
