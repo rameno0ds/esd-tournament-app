@@ -124,6 +124,15 @@ def join_team():
         if tournament_res.status_code != 200:
             return jsonify({ "error": "Failed to update tournament" }), 400
 
+        # Notify the player via Discord
+        notify_url = "http://notification-service:8000/assign_team"
+        notify_payload = {
+            "player_name": player_name,
+            "team_id": team_id
+        }
+        notify_res = requests.post(notify_url, json=notify_payload)
+        if notify_res.status_code != 200:
+            return jsonify({"error": "Failed to notify moderator"}), 500
         # Send event to RabbitMQ after everything succeeds
         send_to_queue("player_events", {
             "event": "player_joined",
@@ -132,7 +141,11 @@ def join_team():
             "tournament_id": tournament_id,
             "timestamp": datetime.now().isoformat()
         })
-        return jsonify({ "message": "Joined successfully!" }), 200
+        
+        return jsonify({
+            "status": "Player joined team successfull",
+            "playerNotification": notify_res.json()
+        }), 200
     
 
     except Exception as e:
