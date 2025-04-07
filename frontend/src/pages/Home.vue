@@ -16,7 +16,6 @@
               <h2>{{ tourney.tournamentName }}</h2>
               <p>ID: {{ tourney.id }}</p>
               <p>Status: {{ tourney.status }}</p>
-
               <!-- If the user has already joined this tournament -->
               <!-- 1) Already joined? -->
               <div v-if="hasJoined(tourney)">
@@ -65,6 +64,16 @@
             <h2>{{ tourney.tournamentName }}</h2>
             <p>ID: {{ tourney.id }}</p>
             <p>Status: {{ tourney.status }}</p>
+            <!-- Discord Channel Invitation -->
+            <div v-if="tourney.status === 'upcoming'" class="discord-invite">
+              <p>
+                🔔 Before you join the tournament, hop into our
+                <a :href="discordInviteUrl" target="_blank" rel="noopener">
+                  Discord community
+                </a>
+                for real‑time updates, match‑making help, and to meet fellow teams and competitors!
+              </p>
+            </div>
             <button @click="viewUpcomingTournament(tourney)">View Details</button>
           </div>
         </div>
@@ -152,6 +161,8 @@ const profile = ref({
   points: 1500,
   recentActivity: 'Won a match in Tournament A.'
 })
+
+const discordInviteUrl = 'https://discord.gg/e6a7aVNe'
 
 // Computed username
 const username = computed(() => {
@@ -485,6 +496,26 @@ ul li:last-child {
   padding: 1rem;
   border-radius: 8px;
   border: 1px solid #ccc;
+}
+
+.discord-invite {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background-color: #f0f4ff;
+  border-left: 4px solid #5865f2;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  color: #2c2f33;
+}
+
+.discord-invite a {
+  color: #5865f2;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.discord-invite a:hover {
+  text-decoration: underline;
 }
 
 </style>
