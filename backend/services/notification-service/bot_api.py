@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import asyncio
-from bot_dm import team_assignment
-from bot_dm import new_dispute
+from bot_functions import team_assignment
+from bot_functions import new_dispute
 
 app = FastAPI()
 

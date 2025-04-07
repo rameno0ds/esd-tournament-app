@@ -1,7 +1,7 @@
 import asyncio
 import os
 from dotenv import load_dotenv
-from bot_dm import client
+from bot_functions import client
 from bot_api import app
 import uvicorn
 from uvicorn import Config, Server
