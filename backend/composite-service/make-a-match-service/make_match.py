@@ -175,7 +175,17 @@ def make_match():
             if match_res.status_code != 201:
                 return jsonify({"error": f"Failed to create match for {pair['teamA']} vs {pair['teamB']}"}), 500
 
-        return jsonify({"message": f"{len(pairs)} matches created successfully"}), 201
+         # ✅ Update curRound in tournament service
+        update_payload = { "curRound": round_number }
+        update_url = f"{TOURNAMENT_SERVICE_URL}/tournament/{tournament_id}/update_round"
+        update_res = requests.put(update_url, json=update_payload)
+
+        if update_res.status_code != 200:
+            return jsonify({"error": "Matches created but failed to update curRound"}), 500
+
+        return jsonify({"message": f"{len(pairs)} matches created and tournament round updated"}), 201
+
+        # return jsonify({"message": f"{len(pairs)} matches created successfully"}), 201
 
     except Exception as e:
         import traceback
