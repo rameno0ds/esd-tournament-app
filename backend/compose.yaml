@@ -90,6 +90,21 @@ services:
     env_file:
       - ./services/notification-service/.env
   
+
+  make-match:
+    build:
+      context: ./composite-service/make-a-match-service
+      dockerfile: make_match.dockerfile
+    ports:
+      - "5007:5007"
+    depends_on:
+      - schedule-service
+      - tournament-service
+      - match-service
+    environment:
+      - FLASK_ENV=development
+
+
   handle-dispute-service:
     build:
       context: ./composite-service/handle-dispute-service

@@ -13,9 +13,9 @@ CORS(app, origins="*", supports_credentials=True)
 logging.basicConfig(level=logging.DEBUG)
 
 
-SCHEDULE_SERVICE_URL = "http://localhost:5005"
-TOURNAMENT_SERVICE_URL = "http://localhost:5002"
-MATCH_SERVICE_URL = "http://localhost:5004"
+SCHEDULE_SERVICE_URL = "http://schedule-service:5005"
+TOURNAMENT_SERVICE_URL = "http://tournament-service:5002"
+MATCH_SERVICE_URL = "http://match-service:5004"
 
 # Helper: Sort teams by wins then ELO
 def sort_teams(teams):
@@ -184,4 +184,4 @@ def make_match():
 
 
 if __name__ == "__main__":
-    app.run(port=5007, debug=True)
+    app.run(host="0.0.0.0", port=5007, debug=True)
