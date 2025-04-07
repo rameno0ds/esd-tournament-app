@@ -6,7 +6,6 @@
     <div class="tournament-columns">
       <div class="tournament-section">
         <h2>All Ongoing Tournaments</h2>
-        <button @click="logToken">Log Token</button>
 
         <!-- Loader while fetching tournaments -->
         <div v-if="loading" class="loader">Loading tournaments...</div>
@@ -125,6 +124,8 @@ import {
   arrayUnion
 } from 'firebase/firestore'
 import axios from 'axios'
+import { watch } from 'vue'
+
 
 // Router and reactive state
 const router = useRouter()
@@ -165,6 +166,7 @@ const username = computed(() => {
   return ''
 })
 
+
 // Listen for auth state changes
 onAuthStateChanged(auth, (user) => {
   console.log("Auth state changed:", user)
@@ -174,7 +176,14 @@ onAuthStateChanged(auth, (user) => {
     currentUser.value = user
     loadOngoingTournaments()
     loadUpcomingTournaments()
-    loadMyTeams()
+  }
+})
+
+// 🔁 Watch for currentUser becoming ready, then fetch teams
+watch(currentUser, async (user) => {
+  if (user) {
+    console.log("👀 currentUser is ready — loading teams")
+    await loadMyTeams()
   }
 })
 
@@ -212,6 +221,8 @@ async function loadUpcomingTournaments() {
 }
 
 // Call to your Teams microservice
+console.log("🔍 currentUser:", currentUser.value);
+
 async function loadMyTeams() {
   if (!currentUser.value) return
   try {
@@ -329,18 +340,6 @@ function reportMatch() {
   router.push('/dispute')
 }
 
-import { getAuth } from "firebase/auth";
-
-function logToken() {
-  const user = getAuth().currentUser;
-  if (user) {
-    user.getIdToken(true).then(token => {
-      console.log("🔥 ID Token:", token);
-    });
-  } else {
-    console.log("❌ No user logged in.");
-  }
-}
 </script>
 
 <style scoped>
