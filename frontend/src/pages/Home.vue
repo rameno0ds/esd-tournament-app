@@ -18,13 +18,18 @@
               <p>Status: {{ tourney.status }}</p>
 
               <!-- If the user has already joined this tournament -->
+              <!-- 1) Already joined? -->
               <div v-if="hasJoined(tourney)">
                 <button disabled>Joined</button>
                 <button @click="viewTournament(tourney)">View Tournament</button>
               </div>
-              <!-- Otherwise, show the join button which toggles the join UI -->
+              <!-- 2) Not joined yet, but still ongoing → dont allow join, only View Tournament -->
+              <div v-else-if="tourney.status === 'ongoing'">
+                <button @click="viewTournament(tourney)">View Tournament</button>
+              </div>
+              <!-- 3) Not joined and not ongoing → only view -->
               <div v-else>
-                <button @click="toggleJoin(tourney.id)">Join Tournament</button>
+                <button @click="viewTournament(tourney)">View Tournament</button>
               </div>
 
               <!-- Inline UI for joining (shown only for the expanded tournament) -->
