@@ -6,9 +6,7 @@
     <div class="tournament-columns">
       <div class="tournament-section">
         <h2>All Ongoing Tournaments</h2>
-        
         <button @click="logToken">Log Token</button>
-
 
         <!-- Loader while fetching tournaments -->
         <div v-if="loading" class="loader">Loading tournaments...</div>
@@ -19,16 +17,15 @@
               <p>ID: {{ tourney.id }}</p>
               <p>Status: {{ tourney.status }}</p>
               <!-- If the user has already joined this tournament -->
-              <!-- 1) Already joined? -->
               <div v-if="hasJoined(tourney)">
                 <button disabled>Joined</button>
                 <button @click="viewTournament(tourney)">View Tournament</button>
               </div>
-              <!-- 2) Not joined yet, but still ongoing → dont allow join, only View Tournament -->
+              <!-- Not joined but ongoing -->
               <div v-else-if="tourney.status === 'ongoing'">
                 <button @click="viewTournament(tourney)">View Tournament</button>
               </div>
-              <!-- 3) Not joined and not ongoing → only view -->
+              <!-- Otherwise, only view -->
               <div v-else>
                 <button @click="viewTournament(tourney)">View Tournament</button>
               </div>
@@ -57,9 +54,6 @@
           </div>
         </div>
 
-
-
-
         <h2>Upcoming Tournaments</h2>
         <div class="tournament-grid">
           <div class="tournament-card" v-for="tourney in upcomingTournaments" :key="tourney.id">
@@ -71,7 +65,7 @@
               <p>
                 🔔 Before you join the tournament, hop into our
                 <a :href="discordInviteUrl" target="_blank" rel="noopener">
-                  Discord community
+                  Discord Community
                 </a>
                 for real‑time updates, match‑making help, and to meet fellow teams and competitors!
               </p>
@@ -81,7 +75,6 @@
         </div>
       </div>
     </div>
-
 
     <!-- Announcements / News -->
     <section class="announcements">
@@ -133,7 +126,6 @@ import {
 } from 'firebase/firestore'
 import axios from 'axios'
 
-
 // Router and reactive state
 const router = useRouter()
 const currentUser = ref(null)
@@ -143,7 +135,6 @@ const loading = ref(true)
 const tournaments = ref([])
 const confirmation = ref({})
 const upcomingTournaments = ref([])
-
 
 // List of teams the user belongs to
 const myTeams = ref([])
@@ -220,8 +211,7 @@ async function loadUpcomingTournaments() {
   }
 }
 
-
-// call to your Teams microservice
+// Call to your Teams microservice
 async function loadMyTeams() {
   if (!currentUser.value) return
   try {
@@ -245,7 +235,6 @@ async function loadMyTeams() {
     console.error("Error loading user teams from microservice:", error)
   }
 }
-
 
 // Helper: Return teams not already in the tournament
 function availableTeams(tournamentId) {
@@ -280,9 +269,7 @@ async function joinWithTeam(tournamentId) {
       players: arrayUnion(currentUser.value.uid)
     })
     confirmation.value[tournamentId] = `Successfully joined with team ${selectedTeamId.value}!`
-    // Simulate Discord notification
     console.log(`Discord Notification: User ${currentUser.value.uid} joined tournament ${tournamentId} with team ${selectedTeamId.value}`)
-    // Optionally, update the local tournament object's players array
     if (!tournaments.value.find(t => t.id === tournamentId).players) {
       tournaments.value.find(t => t.id === tournamentId).players = []
     }
@@ -305,7 +292,6 @@ async function autoTeam(tournamentId) {
       players_id: [currentUser.value.uid],
       tournaments_id: tournamentId
     })
-    // Also update tournament doc: add user to players array
     const tournamentDocRef = doc(db, 'tournaments', tournamentId)
     await updateDoc(tournamentDocRef, {
       players: arrayUnion(currentUser.value.uid)
@@ -319,12 +305,12 @@ async function autoTeam(tournamentId) {
   expandedJoin.value = ''
 }
 
-// View tournament details (redirect to page showing matches)
+// View tournament details
 function viewTournament(tournament) {
   router.push({ name: 'TournamentDetails', params: { id: tournament.id } })
 }
 
-// View UPCOMING tournament details (redirect to page)
+// View upcoming tournament details
 function viewUpcomingTournament(tournament) {
   router.push({ name: 'UpcomingTournamentDetails', params: { id: tournament.id } })
 }
@@ -343,7 +329,6 @@ function reportMatch() {
   router.push('/dispute')
 }
 
-
 import { getAuth } from "firebase/auth";
 
 function logToken() {
@@ -356,183 +341,189 @@ function logToken() {
     console.log("❌ No user logged in.");
   }
 }
-
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&display=swap');
+
 .home-page {
-  padding: 2rem;
+  font-family: 'Oswald', sans-serif;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 1rem auto;
+  padding: 1.5rem;
+  background: #fefefe;
+  color: #333;
 }
 
+/* Loader styling */
 .loader {
   text-align: center;
   font-size: 1.5rem;
   margin-top: 4rem;
 }
 
+/* Headings */
 h1 {
-  color: var(--color-heading);
+  text-align: center;
   margin-bottom: 2rem;
+  font-size: 2rem;
+}
+
+/* Tournament Columns & Section */
+.tournament-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.tournament-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* Tournament Grid */
 .tournament-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  margin-bottom: 2rem;
+  margin-top: 1rem;
 }
 
+/* Tournament Card */
 .tournament-card {
-  border: 1px solid var(--color-border);
-  background-color: var(--color-background-soft);
+  background: #f5f5f5;
   padding: 1rem;
   border-radius: 8px;
   text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
+.tournament-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 .tournament-card h2 {
-  color: var(--color-heading);
   margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  color: #222;
 }
-
 .tournament-card p {
-  color: var(--color-text);
   margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
 }
 
+/* Button Styling */
 button {
   padding: 0.5rem 1rem;
-  margin: 0.5rem 0.25rem;
+  margin: 0.3rem;
   border: none;
   border-radius: 6px;
   background: linear-gradient(90deg, #6a5af9, #9e6af8);
   color: #fff;
   font-weight: 500;
   cursor: pointer;
-  transition: filter 0.2s ease;
+  transition: filter 0.2s ease, background 0.2s ease;
 }
-
 button:hover {
   filter: brightness(1.1);
 }
+button:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 
-/* Inline join UI */
+/* Join Options */
 .join-options {
   margin-top: 1rem;
   padding: 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid #ddd;
   border-radius: 6px;
-  background-color: var(--color-background);
+  background: #fff;
   text-align: left;
 }
-
 .join-options select {
   margin-right: 0.5rem;
-  padding: 0.25rem;
+  padding: 0.3rem;
   font-size: 0.9rem;
 }
-
 .join-options h3 {
   margin-top: 1rem;
+  font-size: 1rem;
 }
 
+/* Confirmation Message */
 .confirmation {
-  margin-top: 1rem;
+  margin-top: 0.8rem;
   padding: 0.5rem;
-  background-color: #e6f7ff;
+  background: #e6f7ff;
   border: 1px solid #91d5ff;
   border-radius: 4px;
   font-weight: 500;
   color: #0050b3;
 }
 
-button:disabled {
-  background: #ccc;
-  color: #666;
-  cursor: not-allowed;
-  filter: none;
-  box-shadow: none;
-  opacity: 0.6;
-}
-
-/* Announcements, Profile, Quick Actions Sections */
+/* Announcements, Profile Summary, and Quick Actions */
 .announcements,
 .profile-summary,
 .quick-actions {
-  margin-bottom: 2rem;
+  margin-top: 2rem;
   padding: 1rem;
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background: #fff;
   border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-
+.announcements h2,
+.profile-summary h2,
+.quick-actions h2 {
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: #333;
+}
 ul {
   list-style: none;
   padding: 0;
 }
-
 ul li {
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #ddd;
+  font-size: 0.9rem;
 }
-
 ul li:last-child {
   border-bottom: none;
 }
 
+/* Quick Actions Buttons */
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+  justify-content: center;
+}
+.actions button {
+  flex: 1 1 auto;
 }
 
-.tournament-columns {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.tournament-section {
-  flex: 1;
-  min-width: 300px;
-}
-
-.tournament-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 1fr;
-}
-
-.tournament-card {
-  background: #f5f5f5;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
+/* Discord Invite */
 .discord-invite {
   margin: 0.75rem 0;
   padding: 0.75rem;
-  background-color: #f0f4ff;
+  background: #f0f4ff;
   border-left: 4px solid #5865f2;
   border-radius: 4px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: #2c2f33;
 }
-
 .discord-invite a {
   color: #5865f2;
   font-weight: 600;
   text-decoration: none;
 }
-
 .discord-invite a:hover {
   text-decoration: underline;
 }
-
 </style>
+
