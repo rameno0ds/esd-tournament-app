@@ -46,15 +46,15 @@ async def team_assignment(player_name, team_id):
     print(message)
     await send_private_message_by_username(username, message)
 
-# # Secnario 2: Match making
-# async def match_making():
-#     print(f'Logged in as {client.user}')
-#     channel_id = int(os.getenv('CHANNEL_ID'))  
-#     channel = client.get_channel(channel_id)
-#     # Send a message to the channel in Scenario 2: Match making
-#     if channel:
-#         message = f"This is the upcoming schedule: {{schedule}}."
-#         await channel.send(message)
+# Secnario 2: Match making
+async def match_making(tournament_id, team_a, team_b, scheduled_time):
+    print(f'Logged in as {client.user}')
+    channel_id = int(os.getenv('CHANNEL_ID'))  
+    channel = client.get_channel(channel_id)
+    # Send a message to the channel in Scenario 2: Match making
+    if channel:
+        message = f"The upcoming match for {team_a} and {team_b} for {tournament_id} is on {scheduled_time}."
+        await channel.send(message)
 
 #scenario 3: notify moderator
 async def new_dispute(match_id, raised_by):
@@ -63,13 +63,9 @@ async def new_dispute(match_id, raised_by):
     print(message)
     await send_private_message_by_username(username, message)
 
-# #scenario 3: dispute resolution
-# async def resolution_result():
-#     print(f'Logged in as {client.user}')
-#     channel_id = int(os.getenv('CHANNEL_ID'))  
-#     channel = client.get_channel(channel_id)
-#     # Send a message to the channel in Scenario 3: Dispute resolution
-    
-#     if channel:
-#         message = f"Results for dispute for {{matchId}} is {{status}}."
-#         await channel.send(message)
+#scenario 3: dispute resolution - notify player of outcome
+async def resolution_result(player_name, match_id, result):
+    username = player_name
+    message = f"The finalised dispute result for {match_id} is {result}."
+    print(message)
+    await send_private_message_by_username(username, message)
