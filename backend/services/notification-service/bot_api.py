@@ -43,8 +43,8 @@ class displayMatchRequest(BaseModel):
     team_b: str
     scheduled_time: str
 
-@app.post("/displayMatch")
-async def displayMatch(request: displayMatchRequest):
+@app.post("/display_match")
+async def display_match(request: displayMatchRequest):
     try:
         asyncio.create_task(match_making(request.tournament_id, request.team_a, request.team_b, request.scheduled_time))
         return {"message": "Display Match scheduled"}
@@ -55,13 +55,12 @@ async def displayMatch(request: displayMatchRequest):
 class disputeOutcomeRequest(BaseModel):
     player_name: str
     match_id: str
-    score: list
     result: str
 
 @app.post("/dispute_outcome")
-async def display_outcome(request: disputeOutcomeRequest):
+async def dispute_outcome(request: disputeOutcomeRequest):
     try:
-        asyncio.create_task(resolution_result(request.player_name, request.match_id, request.score, request.result))
+        asyncio.create_task(resolution_result(request.player_name, request.match_id, request.result))
         return {"message": "Dispute Outcome scheduled"}
     except Exception as e:
         return {"error": str(e)}
