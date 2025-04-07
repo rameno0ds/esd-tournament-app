@@ -112,5 +112,7 @@ services:
     depends_on:
       - match-service
       - tournament-service
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
 
 
