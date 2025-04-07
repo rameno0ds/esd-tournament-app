@@ -53,25 +53,18 @@ async function submitDispute() {
       reason: reason.value,
       evidenceUrl: evidenceUrl.value
     }
-    // Endpoints 
-    const outsystemsUrl = "https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes";            // OutSystems dispute endpoint
+    // Endpoint
     const compositeUrl = "http://localhost:5008/dispute/new";      // Composite dispute service endpoint
 
-    // Send both POST requests concurrently
-    const [outsystemsResponse, compositeResponse] = await Promise.all([
-      axios.post(outsystemsUrl, payload),
-      axios.post(compositeUrl, payload)
-    ]);
-
-    // Combine the messages from both responses
-    const outsystemsMessage = outsystemsResponse.data.message 
-      ? outsystemsResponse.data.message + " (ID: " + outsystemsResponse.data.disputeId + ")"
-      : "OutSystems dispute created.";
-    const compositeMessage = compositeResponse.data.message 
-      ? compositeResponse.data.message + " (ID: " + compositeResponse.data.disputeId + ")"
-      : "Handle Dispute updated.";
-    
-    message.value = `${outsystemsMessage} | ${compositeMessage}`;
+    // Send POST to composite service
+    const response = await axios.post(compositeUrl, payload)
+    if (response.data.status === "success") {
+      message.value = "Dispute submitted successfully!"
+      console.log("Dispute submitted successfully:", response.data)
+    } else {
+      message.value = "Failed to submit dispute."
+      console.log("Error in response:", response.data)
+    }
 
     // Clear form fields
     matchId.value = "";
