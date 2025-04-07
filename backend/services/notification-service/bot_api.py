@@ -21,11 +21,11 @@ class NotifyModeratorRequest(BaseModel):
     raisedBy: str
 
 @app.post("/notify_moderator")
-async def notify_moderator(req: NotifyModeratorRequest):
+async def notify_moderator(request: NotifyModeratorRequest):
     try:
         # Schedule the async task to notify the moderator.
         # You could also await new_dispute(req.matchId, req.raisedBy) if you want to block until complete.
-        asyncio.create_task(new_dispute(req.matchId, req.raisedBy))
+        asyncio.create_task(new_dispute(request.matchId, request.raisedBy))
         return {"message": "Moderator notification scheduled."}
     except Exception as e:
         return {"error": str(e)}
