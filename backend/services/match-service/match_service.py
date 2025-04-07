@@ -25,9 +25,11 @@ def create_match():
     team_a = data.get("teamAId")
     team_b = data.get("teamBId")
     scheduled_time = data.get("scheduledTime")
+    status = data.get("status")
+    roundNumber = data.get("roundNumber")
     
 
-    if not all([tournament_id, team_a, team_b, scheduled_time]):
+    if not all([tournament_id, team_a, team_b, scheduled_time, status, roundNumber]):
         return jsonify({"error": "Missing required fields"}), 400
 
     match_doc = match_ref.add({
@@ -37,7 +39,8 @@ def create_match():
         "scheduledTime": scheduled_time,
         "result": "pending",
         "score": {"teamA": 0, "teamB": 0},
-        "status": "scheduled"
+        "status": status,
+        "roundNumber": roundNumber
     })
 
     return jsonify({"message": "Match created successfully", "matchId": match_doc[1].id}), 201
