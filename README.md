@@ -1,5 +1,5 @@
 # Project Setup
-
+Get the keys from the google docs, and insert where needed.
 
 ## Set up backend
 CD to backend and
