@@ -2,13 +2,12 @@
 Get the keys from the google docs, and insert where needed.
 
 ## Set up backend
+Do remove any existing containers before composing up
 CD to backend and
 ```sh
 docker compose up --build
 ```
 This should build all our service containers. 
-### !!!Important note!!!
-The notification service requires a manual start. To do so, locate notification-service within the terminal and CMD + Click to send a GET request to http://0.0.0.0:8000
 
 ## Set up frontend
 
