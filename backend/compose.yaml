@@ -1,77 +1,93 @@
+version: "3.8"
 
 services:
   tournament-service:
     build:
-      context: ./services/tournament-service  # Path to your tournament service folder
+      context: ./services/tournament-service
       dockerfile: tournament_service.dockerfile
     ports:
-      - "5002:5002"  
+      - "5002:5002"
     environment:
       - FLASK_ENV=development
     volumes:
-      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+    networks:
+      - kong-net
 
   teams-service:
     build:
-      context: ./services/teams-service  # Path to your teams service folder
+      context: ./services/teams-service
       dockerfile: teams_service.dockerfile
     ports:
-      - "5003:5003" 
+      - "5003:5003"
     environment:
       - FLASK_ENV=development
     volumes:
-      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+    networks:
+      - kong-net
 
   match-service:
     build:
-      context: ./services/match-service  # Path to your match service folder
+      context: ./services/match-service
       dockerfile: match_service.dockerfile
     ports:
-      - "5004:5004"  
+      - "5004:5004"
     environment:
       - FLASK_ENV=development
     volumes:
-      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
-  
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+    networks:
+      - kong-net
 
   player-service:
     build:
-      context: ./services/player-service  # Path to your player service folder
+      context: ./services/player-service
       dockerfile: player_service.dockerfile
     ports:
-      - "5001:5001" 
+      - "5001:5001"
     environment:
       - FLASK_ENV=development
     volumes:
-      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
-    
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+    networks:
+      - kong-net
 
   schedule-service:
     build:
-      context: ./services/schedule-service  # Path to your schedule service folder
+      context: ./services/schedule-service
       dockerfile: schedule_service.dockerfile
     ports:
-      - "5005:5005"  
+      - "5005:5005"
     environment:
       - FLASK_ENV=development
     volumes:
-      - ./serviceAccountKey.json:/app/serviceAccountKey.json  # Mount the Firebase credentials
-
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+    networks:
+      - kong-net
 
   rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
+    networks:
+      - kong-net
 
-  composite_service:
+
+  
+  join-team-service:
+    container_name: join-team-service
     build:
-      context: ./composite-service/join-team-service
-      dockerfile: composite_service.dockerfile 
+      context: ./composite-services/join_team_service
+      dockerfile: join_team_service.dockerfile
     ports:
       - "5006:5006"
     depends_on:
       - rabbitmq
+    networks:
+      - kong-net
+
 
   join_logger:
     build:
@@ -79,7 +95,9 @@ services:
       dockerfile: join_logger.dockerfile
     depends_on:
       - rabbitmq
-    
+    networks:
+      - kong-net
+
   notification-service:
     build:
       context: ./services/notification-service
@@ -88,11 +106,13 @@ services:
       - "8000:8000"
     env_file:
       - ./services/notification-service/.env
-  
+    networks:
+      - kong-net
 
   make-match:
+    container_name: make-match   # ✅ this fixes name resolution for Kong
     build:
-      context: ./composite-service/make-a-match-service
+      context: ./composite-services/make-a-match-service
       dockerfile: make_match.dockerfile
     ports:
       - "5007:5007"
@@ -102,11 +122,12 @@ services:
       - match-service
     environment:
       - FLASK_ENV=development
-
+    networks:
+      - kong-net
 
   handle-dispute-service:
     build:
-      context: ./composite-service/handle-dispute-service
+      context: ./composite-services/handle-dispute-service
       dockerfile: handle_dispute_service.dockerfile
     ports:
       - "5008:5008"
@@ -114,19 +135,44 @@ services:
       - FLASK_ENV=development
     volumes:
       - ./serviceAccountKey.json:/app/serviceAccountKey.json
-   
-
+    networks:
+      - kong-net
 
   finalize-match-outcome-service:
     build:
-      context: ./composite-service/finalize-match-outcome-service
+      context: ./composite-services/finalize-match-outcome-service
       dockerfile: finalize_match_outcome_service.dockerfile
     ports:
-      - "5009:5009"  
+      - "5009:5009"
     depends_on:
       - match-service
       - tournament-service
     volumes:
       - ./serviceAccountKey.json:/app/serviceAccountKey.json
+    networks:
+      - kong-net
 
+  kong:
+    image: kong:3.3
+    container_name: kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+    ports:
+      - "8010:8000"  # Public gateway
+      - "8011:8001"  # Admin API
+    volumes:
+      - ../kong/kong.yml:/etc/kong/kong.yml
+    depends_on:
+      - join-team-service
+      - make-match
+      - handle-dispute-service
+      - match-service
+    networks:
+      - kong-net
 
+networks:
+  kong-net:
+    name: kong-net

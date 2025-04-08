@@ -30,7 +30,7 @@
             <p>TeamB: {{ dispute.matchData.teamBId }}</p>
           </div>
         </div>
-        <div class="resolution-section" v-if="dispute.status === 'Pending'">
+        <div class="resolution-section" v-if="dispute.status.toLowerCase() === 'pending'">
           <label>Resolution Message:</label>
           <input v-model="dispute.resolution" placeholder="Enter resolution" class="input-field" />
           <!-- Let moderator update match result -->
@@ -79,7 +79,7 @@ const disputes = ref([])
 async function fetchMatchDetails(matchId) {
   try {
     // If your match-service runs on port 5004:
-    const response = await axios.get(`http://localhost:5004/match/${matchId}`);
+    const response = await axios.get(`http://localhost:8010/match/${matchId}`);
     return response.data;
   } catch (error) {
     console.error("No match data found for ID:", matchId);
@@ -90,10 +90,10 @@ async function fetchMatchDetails(matchId) {
 async function fetchPendingDisputes() {
   try {
     // 1. Fetch pending disputes from OutSystems
-    const response = await axios.get(
-      "https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes?status=pending"
-    );
+    const response = await axios.get("http://localhost:8010/dispute");
     let rawDisputes = response.data.Disputes || [];
+
+    console.log("Fetched disputes:", rawDisputes);
 
     // 2. For each dispute, fetch match details in parallel
     const updatedDisputes = await Promise.all(
@@ -119,11 +119,15 @@ async function fetchPendingDisputes() {
     );
 
     // 3. Set the updated disputes array
-    disputes.value = updatedDisputes;
+    // disputes.value = updatedDisputes;
+    disputes.value = updatedDisputes.filter(d => d.status === "Pending");
   } catch (error) {
     console.error("Error fetching disputes:", error);
   }
+
+    
 }
+
 
 async function resolveDispute(dispute, action) {
   try {
@@ -137,7 +141,7 @@ async function resolveDispute(dispute, action) {
       },
       raisedBy: dispute.raisedBy, // might need for notifications
     }
-    const compositeUrl = "http://localhost:5008/dispute/resolve";
+    const compositeUrl = "http://localhost:8010/dispute/resolve";
     const response = await axios.post(compositeUrl, payload)
     console.log("Dispute resolved:", response.data)
     // Refresh the list or update local state

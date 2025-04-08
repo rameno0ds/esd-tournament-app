@@ -1,0 +1,70 @@
+_format_version: "3.0"
+
+services:
+
+  - name: join-team-service
+    url: http://join-team-service:5006
+    routes:
+      - name: join-team-route
+        paths:
+          - /join-team
+        strip_path: true
+
+
+
+  - name: make-match
+    url: http://make-match:5007
+    routes:
+      - name: make-match-route
+        paths:
+          - /make-match
+        strip_path: false
+
+  # - name: handle-dispute-service
+  #   url: http://handle-dispute-service:5008
+  #   routes:
+  #     - name: handle-dispute-route
+  #       paths:
+  #         - /dispute-handler
+
+  - name: handle-dispute-service
+    url: http://handle-dispute-service:5008
+    routes:
+    - name: handle-dispute-base
+      paths:
+        - /dispute
+      strip_path: false
+      plugins:
+        - name: cors
+          config:
+            origins:
+              - "*"
+            methods:
+              - GET
+              - POST
+              - OPTIONS
+            headers:
+              - Accept
+              - Authorization
+              - Content-Type
+            credentials: true
+            max_age: 3600
+
+
+  - name: match-service
+    url: http://match-service:5004
+    routes:
+    - name: match-route
+      paths:
+        - /match/
+      strip_path: false
+
+
+
+
+  - name: dispute-outsystems
+    url: https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1
+    routes:
+      - name: dispute-outsystems-route
+        paths:
+          - /dispute

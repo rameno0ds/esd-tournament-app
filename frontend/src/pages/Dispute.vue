@@ -53,7 +53,8 @@ async function submitDispute() {
       evidenceUrl: evidenceUrl.value
     }
     // Composite dispute service endpoint
-    const compositeUrl = "http://localhost:5008/dispute/new";      
+    // const compositeUrl = "http://localhost:5008/dispute/new";      
+    const compositeUrl = "http://localhost:8010/dispute/new";
     const response = await axios.post(compositeUrl, payload)
     if (response.data.status === "success") {
       message.value = "Dispute submitted successfully!"

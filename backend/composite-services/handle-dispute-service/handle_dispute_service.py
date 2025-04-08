@@ -8,6 +8,18 @@ CORS(app, resources={r"/dispute/*": {"origins": "*"}}, supports_credentials=True
 
 PLAYER_SERVICE_URL = "http://player-service:5001/player"
 
+@app.route("/dispute", methods=["GET"])
+def get_disputes():
+    try:
+        # Forward to the actual OutSystems endpoint
+        outsystems_url = "https://personal-xxidmbev.outsystemscloud.com/disputeAPI/rest/v1/disputes"
+        res = requests.get(outsystems_url)
+        return jsonify(res.json()), res.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
 @app.route("/dispute/new", methods=["POST"])
 def dispute_new():
     try:

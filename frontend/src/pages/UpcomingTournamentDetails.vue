@@ -42,7 +42,7 @@ const userInAnyTeam = ref(false)
 const fetchUserTeams = async () => {
     try {
         const token = await user.getIdToken()
-        const response = await axios.get(`http://localhost:5006/composite/check_if_already_in_team`, {
+        const response = await axios.get(`http://localhost:8010/join-team/composite/check_if_already_in_team`, {
             params: { tournamentId },
             headers: { Authorization: `Bearer ${token}` }
         })
@@ -57,7 +57,7 @@ const fetchUserTeams = async () => {
 const fetchTournamentDetails = async () => {
     try {
         const response = await axios.get(
-            `http://localhost:5006/composite/tournament_details_with_teams/${tournamentId}`
+            `http://localhost:8010/join-team/composite/tournament_details_with_teams/${tournamentId}`
         )
 
         tournamentName.value = response.data.tournamentName || `Tournament ${tournamentId}`
@@ -71,7 +71,7 @@ const joinTeam = async (teamId) => {
   try {
     const token = await user.getIdToken(); // Declare and assign token
 
-    await axios.post("http://localhost:5006/composite/join_team", {
+    await axios.post("http://localhost:8010/join-team/composite/join_team", {
       teamId: teamId,
       tournamentId: tournamentId
     }, {

@@ -132,7 +132,7 @@ function viewMatchRecord(tournamentId, weekNumber) {
 
 async function createMatches(tournamentId, roundNumber) {
   try {
-    const response = await axios.post('http://localhost:5007/make-match', {
+    const response = await axios.post('http://localhost:8010/make-match', {
       tournamentId,
       roundNumber
     })
