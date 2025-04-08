@@ -53,7 +53,7 @@ async def match_making(tournament_id, team_a, team_b, scheduled_time):
     channel = client.get_channel(channel_id)
     # Send a message to the channel in Scenario 2: Match making
     if channel:
-        message = f"The upcoming match for {team_a} and {team_b} for {tournament_id} is on {scheduled_time}."
+        message = f"The upcoming match for Team {team_a} and Team {team_b} for Tournament {tournament_id} is on {scheduled_time}."
         await channel.send(message)
 
 #scenario 3: notify moderator

@@ -180,6 +180,18 @@ def make_match():
         update_url = f"{TOURNAMENT_SERVICE_URL}/tournament/{tournament_id}/update_round"
         update_res = requests.put(update_url, json=update_payload)
 
+        #notify in the channel of upcoming scheduled matches
+        notify_url = "http://notification-service:8000/display_match"  
+        notify_payload = {
+            "tournament_id": tournament_id,
+            "team_a": pair["teamA"],
+            "team_b": pair["teamB"],
+            "scheduled_time": pair["day"]
+        }
+        notify_res = requests.post(notify_url, json=notify_payload)
+        if notify_res.status_code != 200:
+            return jsonify({"error": "Failed to display matches"}), 500
+
         if update_res.status_code != 200:
             return jsonify({"error": "Matches created but failed to update curRound"}), 500
 
