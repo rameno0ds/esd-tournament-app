@@ -1,29 +1,25 @@
-# esd-tournament
+# Project Setup
 
-This template should help get you started developing with Vue 3 in Vite.
 
-## Recommended IDE Setup
+## Set up backend
+CD to backend and
+```sh
+docker compose up --build
+```
+This should build all our service containers. 
+### !!!Important note!!!
+The notification service requires a manual start. To do so, locate notification-service within the terminal and CMD + Click to send a GET request to http://0.0.0.0:8000
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Set up frontend
 
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
+CD to frontend folder and 
 ```sh
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+## Run front end
 
 ```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
