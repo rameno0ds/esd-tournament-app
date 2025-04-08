@@ -16,43 +16,46 @@
     <!-- Matches grid/list -->
     <div class="matches-grid" v-if="matches.length">
       <div v-for="match in filteredMatches" :key="match.id" class="match-card">
-        <h2>Match ID: {{ match.id }}</h2>
-        <p>Status: {{ match.status }}</p>
-        <p>Teams: {{ match.teamA }} vs {{ match.teamB }}</p>
-        <!-- If match is upcoming, allow captain to submit availability -->
-        <button v-if="match.status === 'upcoming'" @click="openAvailabilityModal(match)">
-          Submit Availability
-        </button>
+        <h2>{{ match.scheduledTime }}</h2>
+        <p>Match ID: {{ match.id }}</p>
+        <p :class="['status', match.status]">Status: {{ match.status }}</p>
+        <p>Teams: {{ match.teamAName }} vs {{ match.teamBName }}</p>
       </div>
     </div>
     <div v-else class="no-matches">
       <p>No matches found for this tournament.</p>
     </div>
 
-    <!-- Availability Modal -->
-    <div v-if="showAvailabilityModal" class="modal-overlay">
-      <div class="modal">
-        <h2>Submit Availability for Match {{ selectedMatch.id }}</h2>
-        <p>Select the days you are available:</p>
-        <form @submit.prevent="submitAvailability">
-          <div class="checkbox-group">
-            <div v-for="day in daysOfWeek" :key="day" class="checkbox-item">
-              <label>
-                <input type="checkbox" :value="day" v-model="selectedDays" />
-                {{ day }}
-              </label>
-            </div>
-          </div>
-          <div class="modal-buttons">
-            <button type="submit">Submit Availability</button>
-            <button type="button" @click="closeModal">Cancel</button>
-          </div>
-        </form>
-        <div v-if="modalMessage" class="modal-message">
-          {{ modalMessage }}
-        </div>
+
+
+    <div class="availability-form" style="display: flex; flex-direction: column; gap: 10px;">
+
+      <!-- Week Dropdown -->
+      <select v-model="selectedWeek" style="border: 1px solid red">
+        <option disabled value="">Select a Week</option>
+        <option v-for="week in weeks" :key="week" :value="week">{{ week }}</option>
+      </select>
+
+
+      <!-- Checkbox List -->
+      <div class="checkboxes" style="display: flex; flex-direction: column;">
+        <label v-for="day in days" :key="day">
+          <input type="checkbox" :value="day" v-model="selectedDays" />
+          {{ day }}
+        </label>
+      </div>
+
+      <!-- Submit Button -->
+      <button @click="submitAvailability" class="submit-btn">
+        Submit Availability
+      </button>
+
+      <!-- Success Message -->
+      <div v-if="showMessage" class="message">
+        Availability submitted!
       </div>
     </div>
+
   </div>
 </template>
 
@@ -82,11 +85,11 @@ const filteredMatches = computed(() => {
 })
 
 // Modal state
-const showAvailabilityModal = ref(false)
-const selectedMatch = ref(null)
-const selectedDays = ref([])
-const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const modalMessage = ref('')
+// const showAvailabilityModal = ref(false)
+// const selectedMatch = ref(null)
+// const selectedDays = ref([])
+// const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+// const modalMessage = ref('')
 
 // Reactive variable to hold the current player's team ID
 const currentTeamId = ref(null)
@@ -105,59 +108,86 @@ onAuthStateChanged(auth, (user) => {
 // Load tournament details and matches
 onMounted(async () => {
   try {
+    console.log("📦 Fetching tournament data...");
     const tourneyRef = doc(db, 'tournaments', tournamentId)
     const tourneySnap = await getDoc(tourneyRef)
     if (tourneySnap.exists()) {
       const data = tourneySnap.data()
       tournamentName.value = data.tournamentName || data.name || `Tournament ${tournamentId}`
     }
+
+    console.log("📦 Fetching matches...");
     const matchesRef = collection(db, 'matches')
     const q = query(matchesRef, where('tournamentId', '==', tournamentId))
     const snapshot = await getDocs(q)
-    matches.value = snapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    }))
+
+    console.log("🎯 Total matches found:", snapshot.docs.length)
+
+    const enrichedMatches = await Promise.all(
+      snapshot.docs.map(async (docSnap) => {
+        const matchData = docSnap.data()
+        const teamAId = matchData.teamAId
+        const teamBId = matchData.teamBId
+
+        console.log(`🔍 Getting team names for ${teamAId} vs ${teamBId}`)
+
+        try {
+          const teamARef = doc(db, 'teams', teamAId)
+          const teamBRef = doc(db, 'teams', teamBId)
+
+          const [teamASnap, teamBSnap] = await Promise.all([getDoc(teamARef), getDoc(teamBRef)])
+
+          const teamAName = teamASnap.exists() ? teamASnap.data().name : teamAId
+          const teamBName = teamBSnap.exists() ? teamBSnap.data().name : teamBId
+
+          return {
+            id: docSnap.id,
+            ...matchData,
+            teamAName,
+            teamBName
+          }
+        } catch (err) {
+          console.error("❌ Error fetching team names:", err)
+          return {
+            id: docSnap.id,
+            ...matchData,
+            teamAName: teamAId,
+            teamBName: teamBId
+          }
+        }
+      })
+    )
+
+    console.log("✅ Final enriched matches:", enrichedMatches)
+    matches.value = enrichedMatches
   } catch (error) {
-    console.error('Error loading tournament/matches:', error)
+    console.error('🔥 Error loading tournament/matches:', error)
   }
 })
 
+
 // Open modal
-function openAvailabilityModal(match) {
-  selectedMatch.value = match
-  selectedDays.value = []
-  modalMessage.value = ''
-  showAvailabilityModal.value = true
-}
 
-// Close modal
-function closeModal() {
-  showAvailabilityModal.value = false
-  selectedMatch.value = null
-  selectedDays.value = []
-  modalMessage.value = ''
-}
 
-// Submit availability using the dynamic team ID
-async function submitAvailability() {
-  if (!selectedMatch.value) return
-  if (!currentTeamId.value) {
-    modalMessage.value = "Team info not loaded."
-    return
-  }
-  try {
-    const payload = {
-      teamId: currentTeamId.value,
-      availableDays: selectedDays.value,  // e.g. ["Tuesday"]
-      roundNumber: 2
-    }
-    const response = await axios.post(`http://localhost:5005/schedule/${tournamentId}/availability`, payload)
-    modalMessage.value = response.data.message || "Availability submitted successfully!"
-    setTimeout(() => { closeModal() }, 2000)
-  } catch (error) {
-    console.error('Error submitting availability:', error)
-    modalMessage.value = "Failed to submit availability. Please try again."
+
+const weeks = [
+  "Week 1", "Week 2", "Week 3", "Week 4",
+  "Week 5", "Week 6", "Week 7", "Week 8"
+]
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+const selectedWeek = ref('')
+const selectedDays = ref([])
+const showMessage = ref(false)
+
+function submitAvailability() {
+  if (selectedWeek.value && selectedDays.value.length > 0) {
+    showMessage.value = true
+    setTimeout(() => {
+      showMessage.value = false
+    }, 3000)
+  } else {
+    alert("Please select a week and at least one day.")
   }
 }
 </script>
@@ -169,62 +199,79 @@ async function submitAvailability() {
   margin: 2rem auto;
   padding: 1rem;
 }
+
 .filter-section {
   margin: 1rem 0;
 }
+
 .matches-grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   margin-top: 1rem;
 }
+
 .match-card {
   border: 1px solid #ddd;
   background-color: #fff;
   padding: 1rem;
   border-radius: 6px;
 }
+
 .no-matches {
   margin-top: 2rem;
   text-align: center;
   font-style: italic;
 }
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-.modal {
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 90%;
-}
+
+
 .checkbox-group {
   display: flex;
   flex-direction: column;
   margin-bottom: 1rem;
 }
+
 .checkbox-item {
   margin: 0.25rem 0;
 }
-.modal-buttons {
+
+
+
+.availability-form {
+  /* Optional: move this here instead of using inline style */
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
 }
-.modal-message {
-  margin-top: 1rem;
-  font-weight: bold;
-  text-align: center;
+
+
+.submit-btn {
+  margin-left: 20px;
+  padding: 6px 14px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.message {
+  margin-left: 20px;
   color: green;
+  font-weight: bold;
 }
+
+.status {
+  font-weight: bold;
+  margin: 0.3rem 0;
+}
+
+.status.ongoing {
+  color: #f39c12; /* orange-ish */
+}
+
+.status.completed {
+  color: #27ae60; /* green */
+}
+
 </style>
